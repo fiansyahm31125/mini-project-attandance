@@ -13,9 +13,9 @@ class Tbusertempsch extends CI_Controller
     /**
      * Endpoint: /index.php/tbusertempsch/get_by_appid_and_empid/{appid}/{empid}
      */
-    public function get_by_appid_and_empid($appid, $empid)
+    public function get_by_appid_and_empid($appid, $empid, $date = null)
     {
-        $result = $this->Tbusertempsch_model->get_by_appid_and_empid($appid, $empid);
+        $result = $this->Tbusertempsch_model->get_by_appid_and_empid($appid, $empid, $date);
 
         if ($result) {
             echo json_encode([

@@ -15,6 +15,12 @@
         </h2>
 
         <div class="flex flex-col md:flex-row gap-4 items-center justify-center flex-wrap">
+
+            <!-- Pilih Tanggal -->
+            <input type="date" id="datePicker"
+                class="w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                value="<?= date('Y-m-d'); ?>">
+
             <!-- AppID -->
             <select name="appid" id="appid"
                 class="w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -32,11 +38,6 @@
                 class="hidden w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 <option value="">-- Pilih Employee --</option>
             </select>
-
-            <!-- Pilih Tanggal -->
-            <input type="date" id="datePicker"
-                class="w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
-                value="<?= date('Y-m-d'); ?>">
 
             <!-- Tombol -->
             <button id="btnTampilkan"
@@ -257,9 +258,10 @@
             }
         }
 
-        async function getTbusertempschId(appid, empid) {
+        async function getTbusertempschId(appid, empid, date) {
             try {
-                const res = await fetch(`/index.php/tbusertempsch/get_by_appid_and_empid/${appid}/${empid}`);
+                const res = await fetch(`/index.php/tbusertempsch/get_by_appid_and_empid/${appid}/${empid}/${date}`);
+                // alert(`/index.php/tbusertempsch/get_by_appid_and_empid/${appid}/${empid}/${date}`);
                 const response = await res.json();
 
                 if (response.status && response.data) {
@@ -300,10 +302,11 @@
         selectEmployee.addEventListener('change', async function() {
             const empid = this.value;
             const appid = selectAppid.value;
+            const date = datePicker.value;
             if (!appid || !empid) return;
             localStorage.setItem('selected_employee', empid);
             try {
-                const tmpstatus1 = await getTbusertempschId(appid, empid); // tunggu hasil async
+                const tmpstatus1 = await getTbusertempschId(appid, empid, date); // tunggu hasil async
                 if (tmpstatus1 === false) {
                     const tmpstatus2 = await getSchclassId(appid, empid); // tunggu hasil async
                     if (tmpstatus2 === false) {
@@ -381,7 +384,7 @@
                 selectEmployee.value = defaultEmpid;
                 localStorage.setItem('selected_employee', defaultEmpid);
                 try {
-                    const tmpstatus1 = await getTbusertempschId(appid, empid); // tunggu hasil async
+                    const tmpstatus1 = await getTbusertempschId(appid, empid, today); // tunggu hasil async
                     if (tmpstatus1 === false) {
                         const tmpstatus2 = await getSchclassId(appid, empid); // tunggu hasil async
                         if (tmpstatus2 === false) {
