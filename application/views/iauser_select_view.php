@@ -37,11 +37,14 @@
             font-size: 16px;
             font-weight: bold;
             display: none;
-            /* 🔹 hasil disembunyikan dulu */
         }
 
         #numRun {
             color: #27ae60;
+        }
+
+        #numRunName {
+            color: #8e44ad;
         }
     </style>
 </head>
@@ -72,6 +75,7 @@
         <div>AppID: <strong id="showAppid">-</strong></div>
         <div>Employee ID: <strong id="showEmpid">-</strong></div>
         <div>num_of_run_id: <strong id="numRun">-</strong></div>
+        <div>tbnumrun.name: <strong id="numRunName">-</strong></div>
     </div>
 
     <script>
@@ -82,9 +86,11 @@
         const showAppid = document.getElementById('showAppid');
         const showEmpid = document.getElementById('showEmpid');
         const numRunSpan = document.getElementById('numRun');
+        const numRunNameSpan = document.getElementById('numRunName');
 
-        async function loadEmployees(appid, selectedEmpid = null) {
+        async function loadEmployees(appid) {
             selectEmployee.innerHTML = '<option value="">-- Pilih Employee --</option>';
+            hasilDiv.style.display = 'none'; // sembunyikan hasil
 
             if (!appid) {
                 selectEmployee.style.display = 'none';
@@ -105,10 +111,7 @@
                     const option = document.createElement('option');
                     option.value = emp.employee_id;
                     option.textContent = emp.employee_full_name;
-
-                    if (selectedEmpid && emp.employee_id == selectedEmpid) {
-                        option.selected = true;
-                    }
+                    if (emp.employee_id == 22363) option.selected = true;
                     selectEmployee.appendChild(option);
                 });
 
@@ -119,6 +122,7 @@
             }
         }
 
+        // 🔹 Ambil num_of_run_id & tbnumrun.name
         async function getNumOfRun(appid, empid) {
             try {
                 const res = await fetch(`/index.php/tbuserofrun/get_by_appid_and_empid/${appid}/${empid}`);
@@ -127,38 +131,67 @@
                 if (response.status && response.data) {
                     const numOfRun = response.data.num_of_run_id;
                     localStorage.setItem('num_of_run_id', numOfRun);
-                    numRunSpan.textContent = numOfRun;
+
+                    // Ambil nama dari tbnumrun
+                    await getNumRunName(numOfRun);
                 } else {
-                    numRunSpan.textContent = '(tidak ditemukan)';
                     localStorage.removeItem('num_of_run_id');
+                    localStorage.removeItem('tbnumrun_name');
                 }
             } catch (err) {
                 console.error('Gagal ambil num_of_run_id:', err);
-                numRunSpan.textContent = '(error koneksi)';
             }
         }
 
-        // 🔹 Ganti AppID → reset hasil & muat employee
+        // 🔹 Ambil name dari tbnumrun berdasarkan id
+        async function getNumRunName(numOfRun) {
+            try {
+                const res = await fetch(`/index.php/tbnumrun/get_name_by_id/${numOfRun}`);
+                const response = await res.json();
+
+                if (response.status && response.data) {
+                    localStorage.setItem('tbnumrun_name', response.data.name);
+                } else {
+                    localStorage.removeItem('tbnumrun_name');
+                }
+            } catch (err) {
+                console.error('Gagal ambil nama tbnumrun:', err);
+                localStorage.removeItem('tbnumrun_name');
+            }
+        }
+
+        // 🔹 Event: Ganti AppID
         selectAppid.addEventListener('change', function() {
             const appid = this.value;
-            hasilDiv.style.display = 'none'; // sembunyikan hasil
-            numRunSpan.textContent = '-';
-            localStorage.removeItem('num_of_run_id');
             localStorage.setItem('selected_appid', appid);
+            showAppid.textContent = appid;
+            hasilDiv.style.display = 'none';
             loadEmployees(appid);
+            localStorage.removeItem('selected_employee');
+            localStorage.removeItem('num_of_run_id');
+            localStorage.removeItem('tbnumrun_name');
         });
 
-        // 🔹 Ganti Employee → sembunyikan hasil & simpan ke localStorage
+        // 🔹 Event: Ganti Employee
         selectEmployee.addEventListener('change', function() {
             const empid = this.value;
-            hasilDiv.style.display = 'none'; // sembunyikan hasil
+            const appid = selectAppid.value;
+            hasilDiv.style.display = 'none'; // sembunyikan hasil sementara
+
+            if (!appid || !empid) return;
+
             localStorage.setItem('selected_employee', empid);
+            showEmpid.textContent = empid;
+
+            getNumOfRun(appid, empid); // langsung ambil num_of_run_id & tbnumrun.name
         });
 
-        // 🔹 Klik tombol tampilkan → ambil data dan tampilkan hasil
-        btnTampilkan.addEventListener('click', async function() {
-            const appid = selectAppid.value;
-            const empid = selectEmployee.value;
+        // 🔹 Tombol tampilkan
+        btnTampilkan.addEventListener('click', function() {
+            const appid = localStorage.getItem('selected_appid');
+            const empid = localStorage.getItem('selected_employee');
+            const numRun = localStorage.getItem('num_of_run_id');
+            const numRunName = localStorage.getItem('tbnumrun_name');
 
             if (!appid || !empid) {
                 alert("AppID dan Employee wajib dipilih!");
@@ -167,19 +200,27 @@
 
             showAppid.textContent = appid;
             showEmpid.textContent = empid;
-            hasilDiv.style.display = 'block';
+            numRunSpan.textContent = numRun || '(tidak ditemukan)';
+            numRunNameSpan.textContent = numRunName || '(tidak ditemukan)';
 
-            await getNumOfRun(appid, empid);
+            hasilDiv.style.display = 'block';
         });
 
-        // 🔹 Saat halaman pertama kali dibuka
+        // 🔹 Saat halaman pertama kali load
         document.addEventListener('DOMContentLoaded', function() {
             const defaultAppid = 'IA01M168064F20250505533';
             const defaultEmpid = '22363';
 
             selectAppid.value = defaultAppid;
+            localStorage.setItem('selected_appid', defaultAppid);
             showAppid.textContent = defaultAppid;
-            loadEmployees(defaultAppid, defaultEmpid);
+
+            loadEmployees(defaultAppid).then(() => {
+                selectEmployee.value = defaultEmpid;
+                localStorage.setItem('selected_employee', defaultEmpid);
+                showEmpid.textContent = defaultEmpid;
+                getNumOfRun(defaultAppid, defaultEmpid);
+            });
         });
     </script>
 
