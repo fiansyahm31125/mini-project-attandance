@@ -1,18 +1,45 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Iauser extends CI_Controller
+class Tbemployee extends CI_Controller
 {
-
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('Iauser_model');
+        // Load model
+        $this->load->model('Tbemployee_model');
+        // (Opsional) Load helper untuk response JSON
+        $this->load->helper('url');
     }
 
-    public function index()
+    // Contoh: http://localhost:8000/index.php/tbemployee/get_by_appid/123
+    public function get_by_appid($appid = null)
     {
-        $data['iausers'] = $this->Iauser_model->get_all_appid();
-        $this->load->view('iauser_select_view', $data);
+        if ($appid === null) {
+            // Kalau tidak ada appid dikirim, kasih respon error
+            $response = [
+                'status' => false,
+                'message' => 'Parameter appid wajib diisi.'
+            ];
+        } else {
+            $data = $this->Tbemployee_model->get_by_appid($appid);
+
+            if (!empty($data)) {
+                $response = [
+                    'status' => true,
+                    'data' => $data
+                ];
+            } else {
+                $response = [
+                    'status' => false,
+                    'message' => 'Data tidak ditemukan.'
+                ];
+            }
+        }
+
+        // Output dalam format JSON
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
     }
 }

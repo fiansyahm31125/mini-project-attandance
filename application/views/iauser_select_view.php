@@ -10,24 +10,11 @@
             margin: 30px;
         }
 
-        select,
-        button {
+        select {
             padding: 6px 10px;
             font-size: 16px;
             border-radius: 6px;
             border: 1px solid #ccc;
-        }
-
-        button {
-            background-color: #007bff;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-
-        button:hover {
-            background-color: #0056b3;
         }
 
         table {
@@ -56,7 +43,8 @@
     <select name="appid" id="appid">
         <option value="">-- Pilih AppID --</option>
         <?php foreach ($iausers as $row): ?>
-            <option value="<?= htmlspecialchars($row['appid']); ?>">
+            <option value="<?= htmlspecialchars($row['appid']); ?>"
+                <?= $row['appid'] === 'IA01M168064F20250505533' ? 'selected' : ''; ?>>
                 <?= htmlspecialchars($row['appid']); ?>
             </option>
         <?php endforeach; ?>
@@ -77,8 +65,7 @@
         const table = document.getElementById('employeeTable');
         const tbody = table.querySelector('tbody');
 
-        selectAppid.addEventListener('change', async function() {
-            const appid = this.value;
+        async function loadEmployees(appid) {
             tbody.innerHTML = '';
             if (!appid) {
                 table.style.display = 'none';
@@ -86,10 +73,11 @@
             }
 
             try {
-                const res = await fetch(`<?= base_url('tbemployee/get_by_appid/'); ?>${appid}`);
-                const data = await res.json();
+                const res = await fetch(`http://localhost:8000/index.php/tbemployee/get_by_appid/${appid}`);
+                const response = await res.json();
+                const data = response.data || response;
 
-                if (data.length === 0) {
+                if (!data || data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="2">Tidak ada data</td></tr>';
                 } else {
                     data.forEach(emp => {
@@ -98,10 +86,24 @@
                         tbody.appendChild(tr);
                     });
                 }
+
                 table.style.display = 'table';
             } catch (err) {
-                console.error(err);
+                console.error('Gagal memuat data:', err);
+                tbody.innerHTML = '<tr><td colspan="2">Terjadi kesalahan saat mengambil data</td></tr>';
+                table.style.display = 'table';
             }
+        }
+
+        // Ganti data saat AppID dipilih manual
+        selectAppid.addEventListener('change', function() {
+            loadEmployees(this.value);
+        });
+
+        // 🔹 Panggil otomatis untuk default AppID
+        document.addEventListener('DOMContentLoaded', function() {
+            const defaultAppid = selectAppid.value || 'IA01M168064F20250505533';
+            loadEmployees(defaultAppid);
         });
     </script>
 
