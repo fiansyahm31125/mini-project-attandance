@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Pilih AppID & Employee</title>
+    <title>Pilih AppID, Employee & Date</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -11,12 +11,13 @@
 
     <div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-2xl border border-gray-200">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
-            ⚙️ Pilih App ID & Employee
+            ⚙️ Pilih App ID, Employee & Date
         </h2>
 
-        <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
+        <div class="flex flex-col md:flex-row gap-4 items-center justify-center flex-wrap">
+            <!-- AppID -->
             <select name="appid" id="appid"
-                class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                class="w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 <option value="">-- Pilih AppID --</option>
                 <?php foreach ($iausers as $row): ?>
                     <option value="<?= htmlspecialchars($row['appid']); ?>"
@@ -26,25 +27,37 @@
                 <?php endforeach; ?>
             </select>
 
+            <!-- Employee -->
             <select name="employee" id="employee"
-                class="hidden w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                class="hidden w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                 <option value="">-- Pilih Employee --</option>
             </select>
 
+            <!-- Pilih Tanggal -->
+            <input type="date" id="datePicker"
+                class="w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                value="<?= date('Y-m-d'); ?>">
+
+            <!-- Tombol -->
             <button id="btnTampilkan"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow-md transition">
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow-md transition w-full md:w-auto">
                 🔍 Tampilkan
             </button>
         </div>
 
+        <!-- HASIL -->
         <div id="hasil" class="mt-8 hidden animate-fade-in">
             <div class="bg-gray-100 rounded-lg p-5 border border-gray-200 space-y-2">
                 <div>📱 AppID: <strong id="showAppid" class="text-blue-700">-</strong></div>
                 <div>👤 Employee ID: <strong id="showEmpid" class="text-blue-700">-</strong></div>
+                <div>📅 Date: <strong id="showDate" class="text-indigo-700">-</strong></div>
                 <div>🧩 num_of_run_id: <strong id="numRun" class="text-green-600">-</strong></div>
                 <div>🏷️ tbnumrun.name: <strong id="numRunName" class="text-purple-700">-</strong></div>
                 <div>⏰ Start Time: <strong id="startTime" class="text-orange-600">-</strong></div>
                 <div>🕓 End Time: <strong id="endTime" class="text-orange-600">-</strong></div>
+                <hr class="my-3 border-gray-300">
+                <div>✅ Check In: <strong id="checkIn" class="text-green-700">-</strong></div>
+                <div>🚪 Check Out: <strong id="checkOut" class="text-red-700">-</strong></div>
             </div>
         </div>
     </div>
@@ -52,14 +65,18 @@
     <script>
         const selectAppid = document.getElementById('appid');
         const selectEmployee = document.getElementById('employee');
+        const datePicker = document.getElementById('datePicker');
         const btnTampilkan = document.getElementById('btnTampilkan');
         const hasilDiv = document.getElementById('hasil');
         const showAppid = document.getElementById('showAppid');
         const showEmpid = document.getElementById('showEmpid');
+        const showDate = document.getElementById('showDate');
         const numRunSpan = document.getElementById('numRun');
         const numRunNameSpan = document.getElementById('numRunName');
         const startTimeSpan = document.getElementById('startTime');
         const endTimeSpan = document.getElementById('endTime');
+        const checkInSpan = document.getElementById('checkIn');
+        const checkOutSpan = document.getElementById('checkOut');
 
         async function loadEmployees(appid) {
             selectEmployee.innerHTML = '<option value="">-- Pilih Employee --</option>';
@@ -84,7 +101,7 @@
                     const option = document.createElement('option');
                     option.value = emp.employee_id;
                     option.textContent = emp.employee_full_name;
-                    if (emp.employee_id == 22363) option.selected = true;
+                    option.selected = true;
                     selectEmployee.appendChild(option);
                 });
 
@@ -104,7 +121,8 @@
                     const numOfRun = response.data.num_of_run_id;
                     localStorage.setItem('num_of_run_id', numOfRun);
 
-                    await getNumRunName(numOfRun);
+                    const selectedDate = localStorage.getItem('selected_date') || new Date().toISOString().split('T')[0];
+                    await getNumRunName(numOfRun, selectedDate);
                     await getNumRunDeil(numOfRun);
                 } else {
                     localStorage.removeItem('num_of_run_id');
@@ -117,9 +135,9 @@
             }
         }
 
-        async function getNumRunName(numOfRun) {
+        async function getNumRunName(numOfRun, date) {
             try {
-                const res = await fetch(`/index.php/tbnumrun/get_name_by_id/${numOfRun}`);
+                const res = await fetch(`/index.php/tbnumrun/get_name_by_id/${numOfRun}/${date}`);
                 const response = await res.json();
 
                 if (response.status && response.data) {
@@ -151,11 +169,31 @@
                 }
             } catch (err) {
                 console.error('Gagal ambil tbnumrundeil:', err);
-                localStorage.removeItem('tbnumrundeil_start_time');
-                localStorage.removeItem('tbnumrundeil_end_time');
             }
         }
 
+        async function getCheckInOut(appid, empid, date) {
+            try {
+                const urltmp = `/index.php/tbcheckinout_mobile/get_by_empid_and_date/${empid}/${date}`;
+                alert(urltmp);
+                const res = await fetch(urltmp);
+                const response = await res.json();
+
+                if (response.status && response.data) {
+                    localStorage.setItem('check_in_time', response.data.first_checkin || '-');
+                    localStorage.setItem('check_out_time', response.data.last_checkout || '-');
+                } else {
+                    localStorage.removeItem('check_in_time');
+                    localStorage.removeItem('check_out_time');
+                }
+            } catch (err) {
+                console.error('Gagal ambil data absen:', err);
+                localStorage.removeItem('check_in_time');
+                localStorage.removeItem('check_out_time');
+            }
+        }
+
+        // Event listeners
         selectAppid.addEventListener('change', function() {
             const appid = this.value;
             localStorage.setItem('selected_appid', appid);
@@ -163,28 +201,25 @@
             hasilDiv.classList.add('hidden');
             loadEmployees(appid);
             localStorage.removeItem('selected_employee');
-            localStorage.removeItem('num_of_run_id');
-            localStorage.removeItem('tbnumrun_name');
-            localStorage.removeItem('tbnumrundeil_start_time');
-            localStorage.removeItem('tbnumrundeil_end_time');
         });
 
         selectEmployee.addEventListener('change', function() {
             const empid = this.value;
             const appid = selectAppid.value;
-            hasilDiv.classList.add('hidden');
-
             if (!appid || !empid) return;
-
             localStorage.setItem('selected_employee', empid);
-            showEmpid.textContent = empid;
-
             getNumOfRun(appid, empid);
         });
 
-        btnTampilkan.addEventListener('click', function() {
+        datePicker.addEventListener('change', function() {
+            const selectedDate = this.value;
+            localStorage.setItem('selected_date', selectedDate);
+        });
+
+        btnTampilkan.addEventListener('click', async function() {
             const appid = localStorage.getItem('selected_appid');
             const empid = localStorage.getItem('selected_employee');
+            const date = localStorage.getItem('selected_date') || new Date().toISOString().split('T')[0];
             const numRun = localStorage.getItem('num_of_run_id');
             const numRunName = localStorage.getItem('tbnumrun_name');
             const startTime = localStorage.getItem('tbnumrundeil_start_time');
@@ -195,28 +230,40 @@
                 return;
             }
 
+            // Ambil data check in/out sebelum tampil
+            await getCheckInOut(appid, empid, date);
+
+            const checkIn = localStorage.getItem('check_in_time');
+            const checkOut = localStorage.getItem('check_out_time');
+
             showAppid.textContent = appid;
             showEmpid.textContent = empid;
+            showDate.textContent = date;
             numRunSpan.textContent = numRun || '(tidak ditemukan)';
             numRunNameSpan.textContent = numRunName || '(tidak ditemukan)';
             startTimeSpan.textContent = startTime || '(tidak ditemukan)';
             endTimeSpan.textContent = endTime || '(tidak ditemukan)';
+            checkInSpan.textContent = checkIn || '(tidak ditemukan)';
+            checkOutSpan.textContent = checkOut || '(tidak ditemukan)';
 
             hasilDiv.classList.remove('hidden');
         });
 
         document.addEventListener('DOMContentLoaded', function() {
+            // const defaultAppid = 'IA01M368F20210831677';
+            // const defaultEmpid = '15873';
             const defaultAppid = 'IA01M168064F20250505533';
             const defaultEmpid = '22363';
+            const today = new Date().toISOString().split('T')[0];
 
             selectAppid.value = defaultAppid;
+            datePicker.value = today;
             localStorage.setItem('selected_appid', defaultAppid);
-            showAppid.textContent = defaultAppid;
+            localStorage.setItem('selected_date', today);
 
             loadEmployees(defaultAppid).then(() => {
                 selectEmployee.value = defaultEmpid;
                 localStorage.setItem('selected_employee', defaultEmpid);
-                showEmpid.textContent = defaultEmpid;
                 getNumOfRun(defaultAppid, defaultEmpid);
             });
         });
