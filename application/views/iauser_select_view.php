@@ -46,6 +46,10 @@
         #numRunName {
             color: #8e44ad;
         }
+
+        #startEndTime {
+            color: #d35400;
+        }
     </style>
 </head>
 
@@ -76,6 +80,8 @@
         <div>Employee ID: <strong id="showEmpid">-</strong></div>
         <div>num_of_run_id: <strong id="numRun">-</strong></div>
         <div>tbnumrun.name: <strong id="numRunName">-</strong></div>
+        <div>Start Time: <strong id="startTime">-</strong></div>
+        <div>End Time: <strong id="endTime">-</strong></div>
     </div>
 
     <script>
@@ -87,10 +93,12 @@
         const showEmpid = document.getElementById('showEmpid');
         const numRunSpan = document.getElementById('numRun');
         const numRunNameSpan = document.getElementById('numRunName');
+        const startTimeSpan = document.getElementById('startTime');
+        const endTimeSpan = document.getElementById('endTime');
 
         async function loadEmployees(appid) {
             selectEmployee.innerHTML = '<option value="">-- Pilih Employee --</option>';
-            hasilDiv.style.display = 'none'; // sembunyikan hasil
+            hasilDiv.style.display = 'none';
 
             if (!appid) {
                 selectEmployee.style.display = 'none';
@@ -132,18 +140,20 @@
                     const numOfRun = response.data.num_of_run_id;
                     localStorage.setItem('num_of_run_id', numOfRun);
 
-                    // Ambil nama dari tbnumrun
                     await getNumRunName(numOfRun);
+                    await getNumRunDeil(numOfRun);
                 } else {
                     localStorage.removeItem('num_of_run_id');
                     localStorage.removeItem('tbnumrun_name');
+                    localStorage.removeItem('tbnumrundeil_start_time');
+                    localStorage.removeItem('tbnumrundeil_end_time');
                 }
             } catch (err) {
                 console.error('Gagal ambil num_of_run_id:', err);
             }
         }
 
-        // 🔹 Ambil name dari tbnumrun berdasarkan id
+        // 🔹 Ambil name dari tbnumrun
         async function getNumRunName(numOfRun) {
             try {
                 const res = await fetch(`/index.php/tbnumrun/get_name_by_id/${numOfRun}`);
@@ -160,6 +170,30 @@
             }
         }
 
+        // 🔹 Ambil start_time & end_time dari tbnumrundeil
+        async function getNumRunDeil(numOfRun) {
+            try {
+                const res = await fetch(`/index.php/tbnumrundeil/get_by_num_run_id/${numOfRun}`);
+                const response = await res.json();
+
+                if (response.status && response.data) {
+                    const {
+                        start_time,
+                        end_time
+                    } = response.data;
+                    localStorage.setItem('tbnumrundeil_start_time', start_time);
+                    localStorage.setItem('tbnumrundeil_end_time', end_time);
+                } else {
+                    localStorage.removeItem('tbnumrundeil_start_time');
+                    localStorage.removeItem('tbnumrundeil_end_time');
+                }
+            } catch (err) {
+                console.error('Gagal ambil tbnumrundeil:', err);
+                localStorage.removeItem('tbnumrundeil_start_time');
+                localStorage.removeItem('tbnumrundeil_end_time');
+            }
+        }
+
         // 🔹 Event: Ganti AppID
         selectAppid.addEventListener('change', function() {
             const appid = this.value;
@@ -170,20 +204,22 @@
             localStorage.removeItem('selected_employee');
             localStorage.removeItem('num_of_run_id');
             localStorage.removeItem('tbnumrun_name');
+            localStorage.removeItem('tbnumrundeil_start_time');
+            localStorage.removeItem('tbnumrundeil_end_time');
         });
 
         // 🔹 Event: Ganti Employee
         selectEmployee.addEventListener('change', function() {
             const empid = this.value;
             const appid = selectAppid.value;
-            hasilDiv.style.display = 'none'; // sembunyikan hasil sementara
+            hasilDiv.style.display = 'none';
 
             if (!appid || !empid) return;
 
             localStorage.setItem('selected_employee', empid);
             showEmpid.textContent = empid;
 
-            getNumOfRun(appid, empid); // langsung ambil num_of_run_id & tbnumrun.name
+            getNumOfRun(appid, empid);
         });
 
         // 🔹 Tombol tampilkan
@@ -192,6 +228,8 @@
             const empid = localStorage.getItem('selected_employee');
             const numRun = localStorage.getItem('num_of_run_id');
             const numRunName = localStorage.getItem('tbnumrun_name');
+            const startTime = localStorage.getItem('tbnumrundeil_start_time');
+            const endTime = localStorage.getItem('tbnumrundeil_end_time');
 
             if (!appid || !empid) {
                 alert("AppID dan Employee wajib dipilih!");
@@ -202,6 +240,8 @@
             showEmpid.textContent = empid;
             numRunSpan.textContent = numRun || '(tidak ditemukan)';
             numRunNameSpan.textContent = numRunName || '(tidak ditemukan)';
+            startTimeSpan.textContent = startTime || '(tidak ditemukan)';
+            endTimeSpan.textContent = endTime || '(tidak ditemukan)';
 
             hasilDiv.style.display = 'block';
         });
