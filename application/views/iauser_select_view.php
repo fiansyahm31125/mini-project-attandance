@@ -85,7 +85,7 @@
             }
 
             try {
-                const res = await fetch(`http://localhost:8000/index.php/tbemployee/get_by_appid/${appid}`);
+                const res = await fetch(`/index.php/tbemployee/get_by_appid/${appid}`);
                 const response = await res.json();
                 const data = response.data || response;
 
