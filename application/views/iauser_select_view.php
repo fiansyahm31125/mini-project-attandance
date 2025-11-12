@@ -4,84 +4,49 @@
 <head>
     <meta charset="UTF-8">
     <title>Pilih AppID & Employee</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-        }
-
-        select {
-            padding: 6px 10px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            margin-right: 10px;
-        }
-
-        button {
-            padding: 6px 12px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: none;
-            background: #3498db;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #2980b9;
-        }
-
-        #hasil {
-            margin-top: 15px;
-            font-size: 16px;
-            font-weight: bold;
-            display: none;
-        }
-
-        #numRun {
-            color: #27ae60;
-        }
-
-        #numRunName {
-            color: #8e44ad;
-        }
-
-        #startEndTime {
-            color: #d35400;
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center font-sans">
 
-    <h3>Pilih App ID dan Employee</h3>
+    <div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-2xl border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+            ⚙️ Pilih App ID & Employee
+        </h2>
 
-    <div>
-        <select name="appid" id="appid">
-            <option value="">-- Pilih AppID --</option>
-            <?php foreach ($iausers as $row): ?>
-                <option value="<?= htmlspecialchars($row['appid']); ?>"
-                    <?= $row['appid'] === 'IA01M168064F20250505533' ? 'selected' : ''; ?>>
-                    <?= htmlspecialchars($row['appid']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
+        <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
+            <select name="appid" id="appid"
+                class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                <option value="">-- Pilih AppID --</option>
+                <?php foreach ($iausers as $row): ?>
+                    <option value="<?= htmlspecialchars($row['appid']); ?>"
+                        <?= $row['appid'] === 'IA01M168064F20250505533' ? 'selected' : ''; ?>>
+                        <?= htmlspecialchars($row['appid']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
 
-        <select name="employee" id="employee" style="display:none;">
-            <option value="">-- Pilih Employee --</option>
-        </select>
+            <select name="employee" id="employee"
+                class="hidden w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                <option value="">-- Pilih Employee --</option>
+            </select>
 
-        <button id="btnTampilkan">Tampilkan</button>
-    </div>
+            <button id="btnTampilkan"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow-md transition">
+                🔍 Tampilkan
+            </button>
+        </div>
 
-    <div id="hasil">
-        <div>AppID: <strong id="showAppid">-</strong></div>
-        <div>Employee ID: <strong id="showEmpid">-</strong></div>
-        <div>num_of_run_id: <strong id="numRun">-</strong></div>
-        <div>tbnumrun.name: <strong id="numRunName">-</strong></div>
-        <div>Start Time: <strong id="startTime">-</strong></div>
-        <div>End Time: <strong id="endTime">-</strong></div>
+        <div id="hasil" class="mt-8 hidden animate-fade-in">
+            <div class="bg-gray-100 rounded-lg p-5 border border-gray-200 space-y-2">
+                <div>📱 AppID: <strong id="showAppid" class="text-blue-700">-</strong></div>
+                <div>👤 Employee ID: <strong id="showEmpid" class="text-blue-700">-</strong></div>
+                <div>🧩 num_of_run_id: <strong id="numRun" class="text-green-600">-</strong></div>
+                <div>🏷️ tbnumrun.name: <strong id="numRunName" class="text-purple-700">-</strong></div>
+                <div>⏰ Start Time: <strong id="startTime" class="text-orange-600">-</strong></div>
+                <div>🕓 End Time: <strong id="endTime" class="text-orange-600">-</strong></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -98,10 +63,10 @@
 
         async function loadEmployees(appid) {
             selectEmployee.innerHTML = '<option value="">-- Pilih Employee --</option>';
-            hasilDiv.style.display = 'none';
+            hasilDiv.classList.add('hidden');
 
             if (!appid) {
-                selectEmployee.style.display = 'none';
+                selectEmployee.classList.add('hidden');
                 return;
             }
 
@@ -111,7 +76,7 @@
                 const data = response.data || response;
 
                 if (!data || data.length === 0) {
-                    selectEmployee.style.display = 'none';
+                    selectEmployee.classList.add('hidden');
                     return;
                 }
 
@@ -123,14 +88,13 @@
                     selectEmployee.appendChild(option);
                 });
 
-                selectEmployee.style.display = 'inline-block';
+                selectEmployee.classList.remove('hidden');
             } catch (err) {
                 console.error('Gagal memuat data employee:', err);
-                selectEmployee.style.display = 'none';
+                selectEmployee.classList.add('hidden');
             }
         }
 
-        // 🔹 Ambil num_of_run_id & tbnumrun.name
         async function getNumOfRun(appid, empid) {
             try {
                 const res = await fetch(`/index.php/tbuserofrun/get_by_appid_and_empid/${appid}/${empid}`);
@@ -153,7 +117,6 @@
             }
         }
 
-        // 🔹 Ambil name dari tbnumrun
         async function getNumRunName(numOfRun) {
             try {
                 const res = await fetch(`/index.php/tbnumrun/get_name_by_id/${numOfRun}`);
@@ -170,7 +133,6 @@
             }
         }
 
-        // 🔹 Ambil start_time & end_time dari tbnumrundeil
         async function getNumRunDeil(numOfRun) {
             try {
                 const res = await fetch(`/index.php/tbnumrundeil/get_by_num_run_id/${numOfRun}`);
@@ -194,12 +156,11 @@
             }
         }
 
-        // 🔹 Event: Ganti AppID
         selectAppid.addEventListener('change', function() {
             const appid = this.value;
             localStorage.setItem('selected_appid', appid);
             showAppid.textContent = appid;
-            hasilDiv.style.display = 'none';
+            hasilDiv.classList.add('hidden');
             loadEmployees(appid);
             localStorage.removeItem('selected_employee');
             localStorage.removeItem('num_of_run_id');
@@ -208,11 +169,10 @@
             localStorage.removeItem('tbnumrundeil_end_time');
         });
 
-        // 🔹 Event: Ganti Employee
         selectEmployee.addEventListener('change', function() {
             const empid = this.value;
             const appid = selectAppid.value;
-            hasilDiv.style.display = 'none';
+            hasilDiv.classList.add('hidden');
 
             if (!appid || !empid) return;
 
@@ -222,7 +182,6 @@
             getNumOfRun(appid, empid);
         });
 
-        // 🔹 Tombol tampilkan
         btnTampilkan.addEventListener('click', function() {
             const appid = localStorage.getItem('selected_appid');
             const empid = localStorage.getItem('selected_employee');
@@ -243,10 +202,9 @@
             startTimeSpan.textContent = startTime || '(tidak ditemukan)';
             endTimeSpan.textContent = endTime || '(tidak ditemukan)';
 
-            hasilDiv.style.display = 'block';
+            hasilDiv.classList.remove('hidden');
         });
 
-        // 🔹 Saat halaman pertama kali load
         document.addEventListener('DOMContentLoaded', function() {
             const defaultAppid = 'IA01M168064F20250505533';
             const defaultEmpid = '22363';
@@ -263,6 +221,24 @@
             });
         });
     </script>
+
+    <style>
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-in-out;
+        }
+    </style>
 
 </body>
 
