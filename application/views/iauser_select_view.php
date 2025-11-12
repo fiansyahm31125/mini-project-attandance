@@ -51,13 +51,20 @@
                 <div>📱 AppID: <strong id="showAppid" class="text-blue-700">-</strong></div>
                 <div>👤 Employee ID: <strong id="showEmpid" class="text-blue-700">-</strong></div>
                 <div>📅 Date: <strong id="showDate" class="text-indigo-700">-</strong></div>
-                <div>🧩 num_of_run_id: <strong id="numRun" class="text-green-600">-</strong></div>
-                <div>🏷️ tbnumrun.name: <strong id="numRunName" class="text-purple-700">-</strong></div>
+                <hr class="my-3 border-gray-300">
+
+                <div style="display: none;">
+                    <div>🧩 schclass_id: <strong id="schclassId" class="text-green-600">-</strong></div>
+                    <div>🧩 num_of_run_id: <strong id="numRun" class="text-green-600">-</strong></div>
+                    <div>🧩 tbusertempsch: <strong id="tbusertempschId" class="text-green-600">-</strong></div>
+                </div>
+
+                <div>🏷️ Schedule Type: <strong id="numRunName" class="text-purple-700">-</strong></div>
                 <div>⏰ Start Time: <strong id="startTime" class="text-orange-600">-</strong></div>
                 <div>🕓 End Time: <strong id="endTime" class="text-orange-600">-</strong></div>
-                <hr class="my-3 border-gray-300">
                 <div>✅ Check In: <strong id="checkIn" class="text-green-700">-</strong></div>
                 <div>🚪 Check Out: <strong id="checkOut" class="text-red-700">-</strong></div>
+                <hr class="my-3 border-gray-300">
             </div>
         </div>
     </div>
@@ -71,12 +78,16 @@
         const showAppid = document.getElementById('showAppid');
         const showEmpid = document.getElementById('showEmpid');
         const showDate = document.getElementById('showDate');
+
         const numRunSpan = document.getElementById('numRun');
         const numRunNameSpan = document.getElementById('numRunName');
         const startTimeSpan = document.getElementById('startTime');
         const endTimeSpan = document.getElementById('endTime');
         const checkInSpan = document.getElementById('checkIn');
         const checkOutSpan = document.getElementById('checkOut');
+
+        const schclassIdSpan = document.getElementById('schclassId');
+        const tbusertempschIdSpan = document.getElementById('tbusertempschId');
 
         async function loadEmployees(appid) {
             selectEmployee.innerHTML = '<option value="">-- Pilih Employee --</option>';
@@ -121,14 +132,18 @@
                     const numOfRun = response.data.num_of_run_id;
                     localStorage.setItem('num_of_run_id', numOfRun);
 
+                    localStorage.removeItem('schclass_id');
+
                     const selectedDate = localStorage.getItem('selected_date') || new Date().toISOString().split('T')[0];
                     await getNumRunName(numOfRun, selectedDate);
                     await getNumRunDeil(numOfRun);
+                    return true;
                 } else {
                     localStorage.removeItem('num_of_run_id');
                     localStorage.removeItem('tbnumrun_name');
                     localStorage.removeItem('tbnumrundeil_start_time');
                     localStorage.removeItem('tbnumrundeil_end_time');
+                    return false;
                 }
             } catch (err) {
                 console.error('Gagal ambil num_of_run_id:', err);
@@ -141,7 +156,7 @@
                 const response = await res.json();
 
                 if (response.status && response.data) {
-                    localStorage.setItem('tbnumrun_name', response.data.name);
+                    localStorage.setItem('tbnumrun_name', "Scheduled(" + response.data.name + ")");
                 } else {
                     localStorage.removeItem('tbnumrun_name');
                 }
@@ -175,7 +190,7 @@
         async function getCheckInOut(appid, empid, date) {
             try {
                 const urltmp = `/index.php/tbcheckinout_mobile/get_by_empid_and_date/${empid}/${date}`;
-                alert(urltmp);
+
                 const res = await fetch(urltmp);
                 const response = await res.json();
 
@@ -193,6 +208,85 @@
             }
         }
 
+
+        async function getSchclassId(appid, empid) {
+            try {
+                const res = await fetch(`/index.php/tbuserusedclasses/get_by_appid_and_empid/${appid}/${empid}`);
+                const response = await res.json();
+
+                if (response.status && response.data) {
+                    const schclassId = response.data.schclass_id;
+
+                    localStorage.removeItem('num_of_run_id');
+                    localStorage.removeItem('tbnumrun_name');
+                    localStorage.removeItem('tbnumrundeil_start_time');
+                    localStorage.removeItem('tbnumrundeil_end_time');
+
+                    localStorage.setItem('schclass_id', schclassId);
+                    const selectedDate = localStorage.getItem('selected_date') || new Date().toISOString().split('T')[0];
+                    await getSchclassName(schclassId, selectedDate);
+                    return true;
+
+                } else {
+                    localStorage.removeItem('schclass_id');
+                    return false;
+                }
+            } catch (err) {
+                console.error('Gagal ambil schclass_id:', err);
+            }
+        }
+
+
+        async function getSchclassName(schcClassid, date, status = "Automatic(") {
+            try {
+                const res = await fetch(`/index.php/tbschclass/get_name_by_id/${schcClassid}/${date}`);
+                const response = await res.json();
+
+                if (response.status && response.data) {
+                    localStorage.setItem('tbnumrun_name', status + response.data.name + ")");
+                    localStorage.setItem('tbnumrundeil_start_time', response.data.start_time);
+                    localStorage.setItem('tbnumrundeil_end_time', response.data.end_time);
+                } else {
+                    localStorage.removeItem('tbnumrun_name');
+                    localStorage.removeItem('tbnumrundeil_start_time');
+                    localStorage.removeItem('tbnumrundeil_end_time');
+                }
+            } catch (err) {
+                console.error('Gagal ambil nama tbnumrun:', err);
+                localStorage.removeItem('tbnumrun_name');
+            }
+        }
+
+        async function getTbusertempschId(appid, empid) {
+            try {
+                const res = await fetch(`/index.php/tbusertempsch/get_by_appid_and_empid/${appid}/${empid}`);
+                const response = await res.json();
+
+                if (response.status && response.data) {
+                    const tbusertempschId = response.data.id;
+                    const schclassId = response.data.schclass_id;
+
+                    localStorage.removeItem('num_of_run_id');
+                    localStorage.removeItem('tbnumrun_name');
+                    localStorage.removeItem('tbnumrundeil_start_time');
+                    localStorage.removeItem('tbnumrundeil_end_time');
+
+                    localStorage.setItem('tbusertempsch_id', tbusertempschId);
+                    localStorage.setItem('schclass_id', schclassId);
+
+                    const selectedDate = localStorage.getItem('selected_date') || new Date().toISOString().split('T')[0];
+                    await getSchclassName(schclassId, selectedDate, "Temporary(")
+                    return true;
+
+                } else {
+                    localStorage.removeItem('tbusertempsch_id');
+                    return false;
+                }
+            } catch (err) {
+                console.error('Gagal ambil tbusertempsch_id:', err);
+            }
+        }
+
         // Event listeners
         selectAppid.addEventListener('change', function() {
             const appid = this.value;
@@ -203,12 +297,23 @@
             localStorage.removeItem('selected_employee');
         });
 
-        selectEmployee.addEventListener('change', function() {
+        selectEmployee.addEventListener('change', async function() {
             const empid = this.value;
             const appid = selectAppid.value;
             if (!appid || !empid) return;
             localStorage.setItem('selected_employee', empid);
-            getNumOfRun(appid, empid);
+            try {
+                const tmpstatus1 = await getTbusertempschId(appid, empid); // tunggu hasil async
+                if (tmpstatus1 === false) {
+                    const tmpstatus2 = await getSchclassId(appid, empid); // tunggu hasil async
+                    if (tmpstatus2 === false) {
+                        getNumOfRun(appid, empid);
+                    }
+                }
+            } catch (error) {
+                console.error('Terjadi kesalahan:', error);
+            }
+
         });
 
         datePicker.addEventListener('change', function() {
@@ -220,10 +325,14 @@
             const appid = localStorage.getItem('selected_appid');
             const empid = localStorage.getItem('selected_employee');
             const date = localStorage.getItem('selected_date') || new Date().toISOString().split('T')[0];
+
             const numRun = localStorage.getItem('num_of_run_id');
             const numRunName = localStorage.getItem('tbnumrun_name');
             const startTime = localStorage.getItem('tbnumrundeil_start_time');
             const endTime = localStorage.getItem('tbnumrundeil_end_time');
+
+            const schclassId = localStorage.getItem('schclass_id');
+            const tbusertempschId = localStorage.getItem('tbusertempsch_id');
 
             if (!appid || !empid) {
                 alert("AppID dan Employee wajib dipilih!");
@@ -239,17 +348,24 @@
             showAppid.textContent = appid;
             showEmpid.textContent = empid;
             showDate.textContent = date;
+
+
             numRunSpan.textContent = numRun || '(tidak ditemukan)';
+
             numRunNameSpan.textContent = numRunName || '(tidak ditemukan)';
             startTimeSpan.textContent = startTime || '(tidak ditemukan)';
             endTimeSpan.textContent = endTime || '(tidak ditemukan)';
             checkInSpan.textContent = checkIn || '(tidak ditemukan)';
             checkOutSpan.textContent = checkOut || '(tidak ditemukan)';
 
+            schclassIdSpan.textContent = schclassId || '(tidak ditemukan)';
+
+            tbusertempschIdSpan.textContent = tbusertempschId || '(tidak ditemukan)';
+
             hasilDiv.classList.remove('hidden');
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // const defaultAppid = 'IA01M368F20210831677';
             // const defaultEmpid = '15873';
             const defaultAppid = 'IA01M168064F20250505533';
@@ -261,10 +377,20 @@
             localStorage.setItem('selected_appid', defaultAppid);
             localStorage.setItem('selected_date', today);
 
-            loadEmployees(defaultAppid).then(() => {
+            loadEmployees(defaultAppid).then(async () => {
                 selectEmployee.value = defaultEmpid;
                 localStorage.setItem('selected_employee', defaultEmpid);
-                getNumOfRun(defaultAppid, defaultEmpid);
+                try {
+                    const tmpstatus1 = await getTbusertempschId(appid, empid); // tunggu hasil async
+                    if (tmpstatus1 === false) {
+                        const tmpstatus2 = await getSchclassId(appid, empid); // tunggu hasil async
+                        if (tmpstatus2 === false) {
+                            getNumOfRun(appid, empid);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Terjadi kesalahan:', error);
+                }
             });
         });
     </script>
