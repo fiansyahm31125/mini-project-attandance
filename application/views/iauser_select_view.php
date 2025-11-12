@@ -18,21 +18,30 @@
             margin-right: 10px;
         }
 
-        table {
-            border-collapse: collapse;
-            margin-top: 20px;
-            width: 60%;
+        button {
+            padding: 6px 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: none;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
         }
 
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 8px;
+        button:hover {
+            background: #2980b9;
         }
 
-        th {
-            background: #f8f8f8;
-            text-align: left;
+        #hasil {
+            margin-top: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            display: none;
+            /* 🔹 hasil disembunyikan dulu */
+        }
+
+        #numRun {
+            color: #27ae60;
         }
     </style>
 </head>
@@ -52,34 +61,32 @@
             <?php endforeach; ?>
         </select>
 
-        <!-- 🔹 Dropdown untuk memilih employee -->
         <select name="employee" id="employee" style="display:none;">
             <option value="">-- Pilih Employee --</option>
         </select>
+
+        <button id="btnTampilkan">Tampilkan</button>
     </div>
 
-    <table id="employeeTable" style="display:none;">
-        <thead>
-            <tr>
-                <th>Employee ID</th>
-                <th>Employee Full Name</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <div id="hasil">
+        <div>AppID: <strong id="showAppid">-</strong></div>
+        <div>Employee ID: <strong id="showEmpid">-</strong></div>
+        <div>num_of_run_id: <strong id="numRun">-</strong></div>
+    </div>
 
     <script>
         const selectAppid = document.getElementById('appid');
         const selectEmployee = document.getElementById('employee');
-        const table = document.getElementById('employeeTable');
-        const tbody = table.querySelector('tbody');
+        const btnTampilkan = document.getElementById('btnTampilkan');
+        const hasilDiv = document.getElementById('hasil');
+        const showAppid = document.getElementById('showAppid');
+        const showEmpid = document.getElementById('showEmpid');
+        const numRunSpan = document.getElementById('numRun');
 
-        async function loadEmployees(appid) {
-            tbody.innerHTML = '';
+        async function loadEmployees(appid, selectedEmpid = null) {
             selectEmployee.innerHTML = '<option value="">-- Pilih Employee --</option>';
 
             if (!appid) {
-                table.style.display = 'none';
                 selectEmployee.style.display = 'none';
                 return;
             }
@@ -90,46 +97,89 @@
                 const data = response.data || response;
 
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="2">Tidak ada data</td></tr>';
-                    table.style.display = 'table';
                     selectEmployee.style.display = 'none';
                     return;
                 }
 
-                // 🔹 Isi tabel
-                data.forEach(emp => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${emp.employee_id}</td><td>${emp.employee_full_name}</td>`;
-                    tbody.appendChild(tr);
-                });
-
-                // 🔹 Isi dropdown employee
                 data.forEach(emp => {
                     const option = document.createElement('option');
-                    option.value = emp.employee_id; // value = employee_id
-                    option.textContent = emp.employee_full_name; // tampilkan full name
+                    option.value = emp.employee_id;
+                    option.textContent = emp.employee_full_name;
+
+                    if (selectedEmpid && emp.employee_id == selectedEmpid) {
+                        option.selected = true;
+                    }
                     selectEmployee.appendChild(option);
                 });
 
                 selectEmployee.style.display = 'inline-block';
-                table.style.display = 'table';
             } catch (err) {
-                console.error('Gagal memuat data:', err);
-                tbody.innerHTML = '<tr><td colspan="2">Terjadi kesalahan saat mengambil data</td></tr>';
-                table.style.display = 'table';
+                console.error('Gagal memuat data employee:', err);
                 selectEmployee.style.display = 'none';
             }
         }
 
-        // Ganti data saat AppID dipilih manual
+        async function getNumOfRun(appid, empid) {
+            try {
+                const res = await fetch(`/index.php/tbuserofrun/get_by_appid_and_empid/${appid}/${empid}`);
+                const response = await res.json();
+
+                if (response.status && response.data) {
+                    const numOfRun = response.data.num_of_run_id;
+                    localStorage.setItem('num_of_run_id', numOfRun);
+                    numRunSpan.textContent = numOfRun;
+                } else {
+                    numRunSpan.textContent = '(tidak ditemukan)';
+                    localStorage.removeItem('num_of_run_id');
+                }
+            } catch (err) {
+                console.error('Gagal ambil num_of_run_id:', err);
+                numRunSpan.textContent = '(error koneksi)';
+            }
+        }
+
+        // 🔹 Ganti AppID → reset hasil & muat employee
         selectAppid.addEventListener('change', function() {
-            loadEmployees(this.value);
+            const appid = this.value;
+            hasilDiv.style.display = 'none'; // sembunyikan hasil
+            numRunSpan.textContent = '-';
+            localStorage.removeItem('num_of_run_id');
+            localStorage.setItem('selected_appid', appid);
+            loadEmployees(appid);
         });
 
-        // 🔹 Panggil otomatis untuk default AppID
+        // 🔹 Ganti Employee → sembunyikan hasil & simpan ke localStorage
+        selectEmployee.addEventListener('change', function() {
+            const empid = this.value;
+            hasilDiv.style.display = 'none'; // sembunyikan hasil
+            localStorage.setItem('selected_employee', empid);
+        });
+
+        // 🔹 Klik tombol tampilkan → ambil data dan tampilkan hasil
+        btnTampilkan.addEventListener('click', async function() {
+            const appid = selectAppid.value;
+            const empid = selectEmployee.value;
+
+            if (!appid || !empid) {
+                alert("AppID dan Employee wajib dipilih!");
+                return;
+            }
+
+            showAppid.textContent = appid;
+            showEmpid.textContent = empid;
+            hasilDiv.style.display = 'block';
+
+            await getNumOfRun(appid, empid);
+        });
+
+        // 🔹 Saat halaman pertama kali dibuka
         document.addEventListener('DOMContentLoaded', function() {
-            const defaultAppid = selectAppid.value || 'IA01M168064F20250505533';
-            loadEmployees(defaultAppid);
+            const defaultAppid = 'IA01M168064F20250505533';
+            const defaultEmpid = '22363';
+
+            selectAppid.value = defaultAppid;
+            showAppid.textContent = defaultAppid;
+            loadEmployees(defaultAppid, defaultEmpid);
         });
     </script>
 
