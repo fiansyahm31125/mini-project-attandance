@@ -14,4 +14,22 @@ class Tbuserusedclasses_model extends CI_Model
         $query = $this->db->get();
         return $query->row_array(); // satu baris hasil
     }
+
+    public function get_with_schclass($appid, $user_id)
+    {
+        $this->db->select('u.id as userused_id, u.appid, u.user_id, u.schclass_id, s.name, s.start_time, s.end_time');
+        $this->db->from('tbuserusedclasses u');
+        $this->db->join('tbschclass s', 's.id = u.schclass_id', 'left');
+        $this->db->where('u.appid', $appid);
+        $this->db->where('u.user_id', $user_id);
+        $this->db->limit(1);
+
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            return $query->row_array();
+        }
+
+        return false;
+    }
 }
