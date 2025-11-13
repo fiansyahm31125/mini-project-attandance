@@ -147,6 +147,46 @@ class Attendance extends CI_Controller
         ];
     }
 
+    function intervalWork($start, $end)
+    {
+        $start = new DateTime($start);
+        $end   = new DateTime($end);
+        return $start->diff($end)->format('%H:%I:%S');
+    }
+
+    public function calculateLateEarlyOut(
+        $date,
+        $scheduledIn,
+        $actualIn,
+        $scheduledOut,
+        $actualOut,
+        $toleranceLate = 0,
+        $toleranceEarly = 0
+    ) {
+        // HITUNG TERLAMBAT
+        $datetime_scheduledIn = $this->makeDateTime($date, $scheduledIn, $scheduledOut)['start'];
+        $datetime_scheduleOut = $this->makeDateTime($date, $scheduledIn, $scheduledOut)['end'];        
+
+        $lateMinutes = 0;
+        if ($actualIn > $datetime_scheduledIn) {
+            $late = ($actualIn->getTimestamp() - $datetime_scheduledIn->getTimestamp()) / 60;
+            $lateMinutes = ($late >= $toleranceLate) ? (int)$late : 0;
+        }
+
+        // HITUNG PULANG CEPAT
+        $earlyOutMinutes = 0;
+        if ($datetime_scheduleOut < $scheduledOut) {
+            $early = ($scheduledOut->getTimestamp() - $datetime_scheduleOut->getTimestamp()) / 60;
+            $earlyOutMinutes = ($early >= $toleranceEarly) ? (int)$early : 0;
+        }
+
+        return [
+            'late_minutes' => $lateMinutes,
+            'early_out_minutes' => $earlyOutMinutes
+        ];
+    }
+
+
 
     public function get_by_appid_and_empid($appid, $empid, $date = null)
     {
@@ -166,8 +206,11 @@ class Attendance extends CI_Controller
             $item->schedule_type = 'Temporary(' . $emp_sch_temp['name'] . ')';
             $item->date = $date;
             $item->work_hour = $emp_sch_temp['start_time'] . '-' . $emp_sch_temp['end_time'];
-            $item->in = $dateTimeCheckin;
-            $item->out = $dateTimeCheckout;
+            $item->in = $dateTimeCheckin->first_checkin;
+            $item->out = $dateTimeCheckout->last_checkout;
+            $item->work_duration = $this->intervalWork($item->in, $item->out);
+            $item->late=$this->calculateLateEarlyOut($date,$emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['late_minutes'];
+            $item->early_out=$this->calculateLateEarlyOut($date,$emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['early_out_minutes'];
             echo json_encode([
                 'status' => true,
                 'data' => $item,
@@ -188,8 +231,11 @@ class Attendance extends CI_Controller
                 $item->schedule_type = 'Automatic(' . $emp_used_class['name'] . ')';
                 $item->date = $date;
                 $item->work_hour = $emp_used_class['start_time'] . '-' . $emp_used_class['end_time'];
-                $item->in = $dateTimeCheckin;
-                $item->out = $dateTimeCheckout;
+                $item->in = $dateTimeCheckin->first_checkin;
+                $item->out = $dateTimeCheckout->last_checkout;
+                $item->work_duration = $this->intervalWork($item->in, $item->out);
+                $item->late=$this->calculateLateEarlyOut($date,$emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['late_minutes'];
+                $item->early_out=$this->calculateLateEarlyOut($date,$emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['early_out_minutes'];
                 echo json_encode([
                     'status' => true,
                     'data' => $item,
@@ -210,8 +256,11 @@ class Attendance extends CI_Controller
                     $item->schedule_type = 'Schedule(' . $num_run['run_name'] . ')';
                     $item->date = $date;
                     $item->work_hour = $num_run['start_time'] . '-' . $num_run['end_time'];
-                    $item->in = $dateTimeCheckin;
-                    $item->out = $dateTimeCheckout;
+                    $item->in = $dateTimeCheckin->first_checkin;
+                    $item->out = $dateTimeCheckout->last_checkout;
+                    $item->work_duration = $this->intervalWork($item->in, $item->out);
+                    $item->late=$this->calculateLateEarlyOut($date,$num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['late_minutes'];
+                    $item->early_out=$this->calculateLateEarlyOut($date,$num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['early_out_minutes'];
                     echo json_encode([
                         'status' => true,
                         'data' => $item,

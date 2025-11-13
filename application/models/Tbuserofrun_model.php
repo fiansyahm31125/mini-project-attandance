@@ -56,7 +56,8 @@ class Tbuserofrun_model extends CI_Model
         r.end_date,
         d.start_time,
         d.end_time,
-        s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time
+        s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time,
+        s.late_minutes,s.early_minutes
     ');
         $this->db->from('tbuserofrun u');
         $this->db->join('tbnumrun r', 'r.id = u.num_of_run_id', 'left');
