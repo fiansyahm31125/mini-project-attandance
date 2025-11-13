@@ -36,7 +36,7 @@
             <!-- Employee -->
             <select name="employee" id="employee"
                 class="hidden w-full md:w-[30%] px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                <option value="">-- Pilih Employee --</option>
+                <option>-- Pilih Employee --</option>
             </select>
 
             <!-- Tombol -->
@@ -91,7 +91,7 @@
         const tbusertempschIdSpan = document.getElementById('tbusertempschId');
 
         async function loadEmployees(appid) {
-            selectEmployee.innerHTML = '<option value="">-- Pilih Employee --</option>';
+            selectEmployee.innerHTML = '<option selected>-- Pilih Employee --</option>';
             hasilDiv.classList.add('hidden');
 
             if (!appid) {
@@ -113,7 +113,6 @@
                     const option = document.createElement('option');
                     option.value = emp.employee_id;
                     option.textContent = emp.employee_full_name;
-                    option.selected = true;
                     selectEmployee.appendChild(option);
                 });
 
@@ -290,6 +289,11 @@
         }
 
         // Event listeners
+        datePicker.addEventListener('change', function() {
+            const selectedDate = this.value;
+            localStorage.setItem('selected_date', selectedDate);
+        });
+
         selectAppid.addEventListener('change', function() {
             const appid = this.value;
             localStorage.setItem('selected_appid', appid);
@@ -319,14 +323,10 @@
 
         });
 
-        datePicker.addEventListener('change', function() {
-            const selectedDate = this.value;
-            localStorage.setItem('selected_date', selectedDate);
-        });
 
         btnTampilkan.addEventListener('click', async function() {
-            const appid = localStorage.getItem('selected_appid');
-            const empid = localStorage.getItem('selected_employee');
+            const appid = selectAppid.value || null;
+            const empid = selectEmployee.value === '-- Pilih Employee --' ? null : selectEmployee.value;
             const date = localStorage.getItem('selected_date') || new Date().toISOString().split('T')[0];
 
             const numRun = localStorage.getItem('num_of_run_id');
@@ -365,6 +365,8 @@
 
             tbusertempschIdSpan.textContent = tbusertempschId || '(tidak ditemukan)';
 
+            loadEmployees(appid)
+
             hasilDiv.classList.remove('hidden');
         });
 
@@ -381,19 +383,19 @@
             localStorage.setItem('selected_date', today);
 
             loadEmployees(defaultAppid).then(async () => {
-                selectEmployee.value = defaultEmpid;
-                localStorage.setItem('selected_employee', defaultEmpid);
-                try {
-                    const tmpstatus1 = await getTbusertempschId(appid, empid, today); // tunggu hasil async
-                    if (tmpstatus1 === false) {
-                        const tmpstatus2 = await getSchclassId(appid, empid); // tunggu hasil async
-                        if (tmpstatus2 === false) {
-                            getNumOfRun(appid, empid);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Terjadi kesalahan:', error);
-                }
+                // selectEmployee.value = defaultEmpid;
+                // localStorage.setItem('selected_employee', defaultEmpid);
+                // try {
+                //     const tmpstatus1 = await getTbusertempschId(appid, empid, today); // tunggu hasil async
+                //     if (tmpstatus1 === false) {
+                //         const tmpstatus2 = await getSchclassId(appid, empid); // tunggu hasil async
+                //         if (tmpstatus2 === false) {
+                //             getNumOfRun(appid, empid);
+                //         }
+                //     }
+                // } catch (error) {
+                //     console.error('Terjadi kesalahan:', error);
+                // }
             });
         });
     </script>
