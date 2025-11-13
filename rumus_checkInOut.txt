@@ -13,4 +13,7 @@
 Fungsi Kedua=
 Start_Out(+0 06:00)< End CheckIn (+0 07:01)
 
+Acuan:
+CheckInOut Berdasar Waktu Perbolehnya,bukan jam masuk dan pulangnya
+
 
