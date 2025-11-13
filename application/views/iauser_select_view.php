@@ -5,6 +5,22 @@
     <meta charset="UTF-8">
     <title>Pilih AppID, Employee & Date</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Tailwind kompatibel styling -->
+    <style>
+        .select2-container .select2-selection--single {
+            height: 42px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 6px 10px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+        }
+    </style>
+
 </head>
 
 <body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center font-sans">
@@ -417,7 +433,9 @@
             animation: fade-in 0.5s ease-in-out;
         }
     </style>
-
+    <!-- jQuery + Select2 JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </body>
 
 </html>
