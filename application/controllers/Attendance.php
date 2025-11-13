@@ -13,6 +13,7 @@ class Attendance extends CI_Controller
         $this->load->model('Tbusertempsch_model');
         $this->load->model('Tbuserusedclasses_model');
         $this->load->model('Tbuserofrun_model');
+        $this->load->model('Tbcheckinout_mobile_model');
         header('Content-Type: application/json');
     }
 
@@ -124,21 +125,47 @@ class Attendance extends CI_Controller
     }
 
 
+    function makeDateTime($date, $start_time, $end_time)
+    {
+        $start = new DateTime("$date $start_time");
+        $end   = new DateTime("$date $end_time");
+
+        // Jika jam akhir lebih kecil dari jam awal, berarti lintas hari
+        if ($end < $start) {
+            $end->modify('+1 day');
+        }
+
+        return [
+            'start' => $start->format('Y-m-d H:i:s'),
+            'end'   => $end->format('Y-m-d H:i:s')
+        ];
+    }
+
+
     public function get_by_appid_and_empid($appid, $empid, $date = null)
     {
         $emp_sch_temp = $this->Tbusertempsch_model->get_with_schclass($appid, $empid, $date);
         $emp_data = $this->Tbemployee_model->get_employee($appid, $empid);
         $data = [];
         if ($emp_sch_temp) {
+            $ckkin = $this->makeDateTime($date, $emp_sch_temp['start_checkin_time'], $emp_sch_temp['end_checkin_time']);
+            $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+
+            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time']);
+            $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+
             $item = new stdClass();
             $item->employee_name = $emp_data['employee_full_name'];
             $item->department = $emp_data['name'];
             $item->schedule_type = 'Temporary(' . $emp_sch_temp['name'] . ')';
             $item->date = $date;
             $item->work_hour = $emp_sch_temp['start_time'] . '-' . $emp_sch_temp['end_time'];
+            $item->in = $dateTimeCheckin;
+            $item->out = $dateTimeCheckout;
             echo json_encode([
                 'status' => true,
-                'data' => $item
+                'data' => $item,
+                'raw' => $emp_sch_temp
             ]);
         } else {
             $emp_used_class = $this->Tbuserusedclasses_model->get_with_schclass($appid, $empid);

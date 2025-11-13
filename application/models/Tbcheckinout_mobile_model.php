@@ -28,4 +28,52 @@ class Tbcheckinout_mobile_model extends CI_Model
         $query = $this->db->get();
         return $query->row(); // kembalikan satu object {first_checkin, last_checkout}
     }
+
+    public function get_checkin($employee_id, $start, $end)
+    {
+        // Validasi parameter
+        if (empty($employee_id) || empty($start) || empty($end)) {
+            return null;
+        }
+
+        // Query: ambil checkout terakhir dalam rentang waktu
+        $this->db->select("MIN(checklog_date) AS first_checkin", false);
+        $this->db->from($this->table);
+        $this->db->where('employee_id', $employee_id);
+        $this->db->where('checklog_date >=', $start);
+        $this->db->where('checklog_date <=', $end);
+        $this->db->where('checklog_event', 'CheckIn');
+
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            return $query->row(); // hasil: object { last_checkout }
+        }
+
+        return null;
+    }
+
+    public function get_checkout($employee_id, $start, $end)
+    {
+        // Validasi parameter
+        if (empty($employee_id) || empty($start) || empty($end)) {
+            return null;
+        }
+
+        // Query: ambil checkout terakhir dalam rentang waktu
+        $this->db->select("MAX(checklog_date) AS last_checkout", false);
+        $this->db->from($this->table);
+        $this->db->where('employee_id', $employee_id);
+        $this->db->where('checklog_date >=', $start);
+        $this->db->where('checklog_date <=', $end);
+        $this->db->where('checklog_event', 'CheckOut');
+
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            return $query->row(); // hasil: object { last_checkout }
+        }
+
+        return null;
+    }
 }
