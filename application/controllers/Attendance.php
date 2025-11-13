@@ -170,15 +170,24 @@ class Attendance extends CI_Controller
         } else {
             $emp_used_class = $this->Tbuserusedclasses_model->get_with_schclass($appid, $empid);
             if ($emp_used_class) {
+                $ckkin = $this->makeDateTime($date, $emp_used_class['start_checkin_time'], $emp_used_class['end_checkin_time']);
+                $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+
+                $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time']);
+                $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+
                 $item = new stdClass();
                 $item->employee_name = $emp_data['employee_full_name'];
                 $item->department = $emp_data['name'];
                 $item->schedule_type = 'Automatic(' . $emp_used_class['name'] . ')';
                 $item->date = $date;
                 $item->work_hour = $emp_used_class['start_time'] . '-' . $emp_used_class['end_time'];
+                $item->in = $dateTimeCheckin;
+                $item->out = $dateTimeCheckout;
                 echo json_encode([
                     'status' => true,
-                    'data' => $item
+                    'data' => $item,
+                    'raw' => $emp_used_class,
                 ]);
             } else {
                 $num_run = $this->Tbuserofrun_model->get_with_numrun($appid, $empid, $date);
