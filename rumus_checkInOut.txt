@@ -1,0 +1,16 @@
+07-10 (Tidak Pakai Fungsi)
+17-20 (Tidak Pakai Fungsi)
+
+07-10 (Tidak Pakai Fungsi)
+23-02(+1) (fungsi kedua)
+
+11-01(+1) (fungsi kedua)
+06(+1)-08(+1)  (fungsi pertama)
+
+07-07:01 (Tidak Pakai Fungsi)
+06(+1)-08(+1)
+
+Fungsi Kedua=
+Start_Out(+0 06:00)< End CheckIn (+0 07:01)
+
+

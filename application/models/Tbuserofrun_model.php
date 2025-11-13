@@ -55,11 +55,13 @@ class Tbuserofrun_model extends CI_Model
         r.start_date,
         r.end_date,
         d.start_time,
-        d.end_time
+        d.end_time,
+        s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time
     ');
         $this->db->from('tbuserofrun u');
         $this->db->join('tbnumrun r', 'r.id = u.num_of_run_id', 'left');
         $this->db->join('tbnumrundeil d', 'd.num_run_id = u.num_of_run_id', 'left');
+        $this->db->join('tbschclass s', 's.id = d.schclass_id', 'left');
         $this->db->where('u.appid', $appid);
         $this->db->where('u.user_id', $user_id);
         $this->db->where('r.start_date <=', $date);

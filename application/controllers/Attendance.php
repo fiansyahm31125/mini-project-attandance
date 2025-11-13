@@ -125,13 +125,19 @@ class Attendance extends CI_Controller
     }
 
 
-    function makeDateTime($date, $start_time, $end_time)
+    function makeDateTime($date, $start_time, $end_time,$end_checkIn=null)
     {
         $start = new DateTime("$date $start_time");
         $end   = new DateTime("$date $end_time");
 
         // Jika jam akhir lebih kecil dari jam awal, berarti lintas hari
-        if ($end < $start) {
+        if($end_checkIn!=null){
+            if ($start < $end_checkIn) {
+                $start->modify('+1 day');
+                $end->modify('+1 day');
+            }
+        }
+        else if ($end < $start) {
             $end->modify('+1 day');
         }
 
@@ -151,7 +157,7 @@ class Attendance extends CI_Controller
             $ckkin = $this->makeDateTime($date, $emp_sch_temp['start_checkin_time'], $emp_sch_temp['end_checkin_time']);
             $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time']);
+            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time'],$ckkin['end']);
             $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
 
             $item = new stdClass();
@@ -173,7 +179,7 @@ class Attendance extends CI_Controller
                 $ckkin = $this->makeDateTime($date, $emp_used_class['start_checkin_time'], $emp_used_class['end_checkin_time']);
                 $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-                $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time']);
+                $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time'],$ckkin['end']);
                 $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
 
                 $item = new stdClass();
@@ -192,15 +198,24 @@ class Attendance extends CI_Controller
             } else {
                 $num_run = $this->Tbuserofrun_model->get_with_numrun($appid, $empid, $date);
                 if ($num_run) {
+                    $ckkin = $this->makeDateTime($date, $num_run['start_checkin_time'], $num_run['end_checkin_time']);
+                    $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+
+                    $ckkout = $this->makeDateTime($date, $num_run['start_checkout_time'], $num_run['end_checkout_time'],$ckkin['end']);
+                    $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+                    
                     $item = new stdClass();
                     $item->employee_name = $emp_data['employee_full_name'];
                     $item->department = $emp_data['name'];
                     $item->schedule_type = 'Schedule(' . $num_run['run_name'] . ')';
                     $item->date = $date;
                     $item->work_hour = $num_run['start_time'] . '-' . $num_run['end_time'];
+                    $item->in = $dateTimeCheckin;
+                    $item->out = $dateTimeCheckout;
                     echo json_encode([
                         'status' => true,
-                        'data' => $item
+                        'data' => $item,
+                        'raw' => $num_run,
                     ]);
                 } else {
                     echo json_encode([
