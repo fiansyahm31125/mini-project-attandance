@@ -21,19 +21,18 @@ class Attendance extends CI_Controller
      * Endpoint: /index.php/tbusertempsch/get_by_appid_and_empid/{appid}/{empid}
      */
 
-    function makeDateTime($date, $start_time, $end_time,$end_checkIn=null)
+    function makeDateTime($date, $start_time, $end_time, $end_checkIn = null)
     {
         $start = new DateTime("$date $start_time");
         $end   = new DateTime("$date $end_time");
 
         // Jika jam akhir lebih kecil dari jam awal, berarti lintas hari
-        if($end_checkIn!=null){
+        if ($end_checkIn != null) {
             if ($start < $end_checkIn) {
                 $start->modify('+1 day');
                 $end->modify('+1 day');
             }
-        }
-        else if ($end < $start) {
+        } else if ($end < $start) {
             $end->modify('+1 day');
         }
 
@@ -59,20 +58,26 @@ class Attendance extends CI_Controller
         $toleranceLate = 0,
         $toleranceEarly = 0
     ) {
-        // HITUNG TERLAMBAT
-        $datetime_scheduledIn = $this->makeDateTime($date, $scheduledIn, $scheduledOut)['start'];
-        $datetime_scheduleOut = $this->makeDateTime($date, $scheduledIn, $scheduledOut)['end'];        
+        // HASIL makeDateTime ASLINYA STRING → WAJIB DIKONVERSI
+        $range = $this->makeDateTime($date, $scheduledIn, $scheduledOut);
+        $datetime_scheduledIn  = new DateTime($range['start']); // <--- FIX PALING PENTING
+        $datetime_scheduledOut = new DateTime($range['end']);   // <--- FIX PALING PENTING
 
+        // KONVERSI actual IN / OUT menjadi DateTime
+        $actualInDT = !empty($actualIn) ? new DateTime($actualIn) : null;
+        $actualOutDT = !empty($actualOut) ? new DateTime($actualOut) : null;
+
+        // LATE
         $lateMinutes = 0;
-        if ($actualIn > $datetime_scheduledIn) {
-            $late = ($actualIn->getTimestamp() - $datetime_scheduledIn->getTimestamp()) / 60;
+        if ($actualInDT !== null && $actualInDT > $datetime_scheduledIn) {
+            $late = ($actualInDT->getTimestamp() - $datetime_scheduledIn->getTimestamp()) / 60;
             $lateMinutes = ($late >= $toleranceLate) ? (int)$late : 0;
         }
 
-        // HITUNG PULANG CEPAT
+        // EARLY OUT
         $earlyOutMinutes = 0;
-        if ($datetime_scheduleOut < $scheduledOut) {
-            $early = ($scheduledOut->getTimestamp() - $datetime_scheduleOut->getTimestamp()) / 60;
+        if ($actualOutDT !== null && $actualOutDT < $datetime_scheduledOut) {
+            $early = ($datetime_scheduledOut->getTimestamp() - $actualOutDT->getTimestamp()) / 60;
             $earlyOutMinutes = ($early >= $toleranceEarly) ? (int)$early : 0;
         }
 
@@ -81,8 +86,6 @@ class Attendance extends CI_Controller
             'early_out_minutes' => $earlyOutMinutes
         ];
     }
-
-
 
     public function get_by_appid_and_empid($appid, $empid, $date = null)
     {
@@ -93,9 +96,8 @@ class Attendance extends CI_Controller
             $ckkin = $this->makeDateTime($date, $emp_sch_temp['start_checkin_time'], $emp_sch_temp['end_checkin_time']);
             $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time'],$ckkin['end']);
+            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time'], $ckkin['end']);
             $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
-
             $item = new stdClass();
             $item->employee_name = $emp_data['employee_full_name'];
             $item->department = $emp_data['name'];
@@ -104,9 +106,9 @@ class Attendance extends CI_Controller
             $item->work_hour = $emp_sch_temp['start_time'] . '-' . $emp_sch_temp['end_time'];
             $item->in = $dateTimeCheckin->first_checkin;
             $item->out = $dateTimeCheckout->last_checkout;
-            $item->work_duration = $this->intervalWork($item->in, $item->out);
-            $item->late=$this->calculateLateEarlyOut($date,$emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['late_minutes'];
-            $item->early_out=$this->calculateLateEarlyOut($date,$emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['early_out_minutes'];
+            $item->work_duration = $item->in != null && $item->out != null ? $this->intervalWork($item->in, $item->out) : 0;
+            $item->late = $this->calculateLateEarlyOut($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['late_minutes'];
+            $item->early_out = $this->calculateLateEarlyOut($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['early_out_minutes'];
             echo json_encode([
                 'status' => true,
                 'data' => $item,
@@ -118,7 +120,7 @@ class Attendance extends CI_Controller
                 $ckkin = $this->makeDateTime($date, $emp_used_class['start_checkin_time'], $emp_used_class['end_checkin_time']);
                 $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-                $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time'],$ckkin['end']);
+                $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time'], $ckkin['end']);
                 $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
 
                 $item = new stdClass();
@@ -129,9 +131,9 @@ class Attendance extends CI_Controller
                 $item->work_hour = $emp_used_class['start_time'] . '-' . $emp_used_class['end_time'];
                 $item->in = $dateTimeCheckin->first_checkin;
                 $item->out = $dateTimeCheckout->last_checkout;
-                $item->work_duration = $this->intervalWork($item->in, $item->out);
-                $item->late=$this->calculateLateEarlyOut($date,$emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['late_minutes'];
-                $item->early_out=$this->calculateLateEarlyOut($date,$emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['early_out_minutes'];
+                $item->work_duration = $item->in != null && $item->out != null ? $this->intervalWork($item->in, $item->out) : 0;
+                $item->late = $this->calculateLateEarlyOut($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['late_minutes'];
+                $item->early_out = $this->calculateLateEarlyOut($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['early_out_minutes'];
                 echo json_encode([
                     'status' => true,
                     'data' => $item,
@@ -143,9 +145,9 @@ class Attendance extends CI_Controller
                     $ckkin = $this->makeDateTime($date, $num_run['start_checkin_time'], $num_run['end_checkin_time']);
                     $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-                    $ckkout = $this->makeDateTime($date, $num_run['start_checkout_time'], $num_run['end_checkout_time'],$ckkin['end']);
+                    $ckkout = $this->makeDateTime($date, $num_run['start_checkout_time'], $num_run['end_checkout_time'], $ckkin['end']);
                     $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
-                    
+
                     $item = new stdClass();
                     $item->employee_name = $emp_data['employee_full_name'];
                     $item->department = $emp_data['name'];
@@ -154,9 +156,9 @@ class Attendance extends CI_Controller
                     $item->work_hour = $num_run['start_time'] . '-' . $num_run['end_time'];
                     $item->in = $dateTimeCheckin->first_checkin;
                     $item->out = $dateTimeCheckout->last_checkout;
-                    $item->work_duration = $this->intervalWork($item->in, $item->out);
-                    $item->late=$this->calculateLateEarlyOut($date,$num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['late_minutes'];
-                    $item->early_out=$this->calculateLateEarlyOut($date,$num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['early_out_minutes'];
+                    $item->work_duration = $item->in != null && $item->out != null ? $this->intervalWork($item->in, $item->out) : 0;
+                    $item->late = $this->calculateLateEarlyOut($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['late_minutes'];
+                    $item->early_out = $this->calculateLateEarlyOut($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['early_out_minutes'];
                     echo json_encode([
                         'status' => true,
                         'data' => $item,
