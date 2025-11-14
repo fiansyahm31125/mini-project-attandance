@@ -17,7 +17,11 @@ class Tbuserusedclasses_model extends CI_Model
 
     public function get_with_schclass($appid, $user_id)
     {
-        $this->db->select('u.id as userused_id, u.appid, u.user_id, u.schclass_id, s.name, s.start_time, s.end_time,s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time,s.late_minutes,s.early_minutes');
+        $this->db->select('u.id as userused_id, u.appid, u.user_id, u.schclass_id, s.name, 
+        s.start_time, s.end_time,
+        s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time,
+        s.late_minutes,s.early_minutes,
+        s.overtime_start,s.overtime_end');
         $this->db->from('tbuserusedclasses u');
         $this->db->join('tbschclass s', 's.id = u.schclass_id', 'left');
         $this->db->where('u.appid', $appid);

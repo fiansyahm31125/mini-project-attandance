@@ -85,6 +85,45 @@ class Attendance extends CI_Controller
         ];
     }
 
+
+    public function calculateOvertime(
+        $date,
+        $scheduledIn,
+        $actualIn,
+        $scheduledOut,
+        $actualOut,
+        $overtime_start = 0,
+        $overtime_end = 0
+    ) {
+        // HASIL makeDateTime ASLINYA STRING → WAJIB DIKONVERSI
+        $range = $this->makeDateTime($date, $scheduledIn, $scheduledOut);
+        $datetime_scheduledIn  = new DateTime($range['start']); // <--- FIX PALING PENTING
+        $datetime_scheduledOut = new DateTime($range['end']);   // <--- FIX PALING PENTING
+
+        // KONVERSI actual IN / OUT menjadi DateTime
+        $actualInDT = !empty($actualIn) ? new DateTime($actualIn) : null;
+        $actualOutDT = !empty($actualOut) ? new DateTime($actualOut) : null;
+
+        // Overtime Start
+        $overtimeStartMinutes = 0;
+        if ($actualInDT !== null && $actualInDT < $datetime_scheduledIn) {
+            $total_overtime_start = ($datetime_scheduledIn->getTimestamp() - $actualInDT->getTimestamp()) / 60;
+            $overtimeStartMinutes = ($total_overtime_start >= $overtime_start) ? (int)$total_overtime_start : 0;
+        }
+
+        // Overtime End
+        $overtimeEndMinutes = 0;
+        if ($actualOutDT !== null && $actualOutDT > $datetime_scheduledOut) {
+            $total_overtime_end = ($actualOutDT->getTimestamp() - $datetime_scheduledOut->getTimestamp()) / 60;
+            $overtimeEndMinutes = ($total_overtime_end >= $overtime_end) ? (int)$total_overtime_end : 0;
+        }
+
+        return [
+            'overtime_start_minutes' => $overtimeStartMinutes,
+            'overtime_end_minutes' => $overtimeEndMinutes
+        ];
+    }
+
     public function get_by_appid_and_empid($appid, $empid, $date = null)
     {
         $emp_sch_temp = $this->Tbusertempsch_model->get_with_schclass($appid, $empid, $date);
@@ -108,6 +147,8 @@ class Attendance extends CI_Controller
             $item->work_duration = $item->in != null && $item->out != null ? $this->intervalWork($item->in, $item->out) : 0;
             $item->late = $this->calculateLateEarlyOut($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['late_minutes'];
             $item->early_out = $this->calculateLateEarlyOut($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes'])['early_out_minutes'];
+            $item->overtime_start = $this->calculateOvertime($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['overtime_start'], $emp_sch_temp['overtime_end'])['overtime_start_minutes'];
+            $item->overtime_end = $this->calculateOvertime($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['overtime_start'], $emp_sch_temp['overtime_end'])['overtime_end_minutes'];
             echo json_encode([
                 'status' => true,
                 'data' => $item,
@@ -133,6 +174,8 @@ class Attendance extends CI_Controller
                 $item->work_duration = $item->in != null && $item->out != null ? $this->intervalWork($item->in, $item->out) : 0;
                 $item->late = $this->calculateLateEarlyOut($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['late_minutes'];
                 $item->early_out = $this->calculateLateEarlyOut($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes'])['early_out_minutes'];
+                $item->overtime_start = $this->calculateOvertime($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['overtime_start'], $emp_used_class['overtime_end'])['overtime_start_minutes'];
+                $item->overtime_end = $this->calculateOvertime($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['overtime_start'], $emp_used_class['overtime_end'])['overtime_end_minutes'];
                 echo json_encode([
                     'status' => true,
                     'data' => $item,
@@ -158,6 +201,8 @@ class Attendance extends CI_Controller
                     $item->work_duration = $item->in != null && $item->out != null ? $this->intervalWork($item->in, $item->out) : 0;
                     $item->late = $this->calculateLateEarlyOut($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['late_minutes'];
                     $item->early_out = $this->calculateLateEarlyOut($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes'])['early_out_minutes'];
+                    $item->overtime_start = $this->calculateOvertime($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['overtime_start'], $num_run['overtime_end'])['overtime_start_minutes'];
+                    $item->overtime_end = $this->calculateOvertime($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['overtime_start'], $num_run['overtime_end'])['overtime_end_minutes'];
                     echo json_encode([
                         'status' => true,
                         'data' => $item,
