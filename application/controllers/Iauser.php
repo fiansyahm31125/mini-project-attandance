@@ -40,4 +40,10 @@ class Iauser extends CI_Controller
         $data['iausers'] = $this->Iauser_model->get_all_appid();
         $this->load->view('iauser_select_view', $data);
     }
+
+    public function select_appid2()
+    {
+        $data['iausers'] = $this->Iauser_model->get_all_appid();
+        $this->load->view('iauser_select_view_2', $data);
+    }
 }
