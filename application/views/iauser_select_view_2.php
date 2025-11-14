@@ -194,6 +194,26 @@
                 const department = $('#filterDepartment').val() || '';
                 const employees = $('#filterEmployee').val() || [];
 
+                if(!dateRange) {
+                    alert('Please select a date range');
+                    return;
+                }
+
+                if(!employees.length) {
+                    alert('Please select at least one employee');
+                    return;
+                }
+
+                if(!appId) {
+                    alert('Please select an app ID');
+                    return;
+                }
+
+                if(!department) {
+                    alert('Please select a department');
+                    return;
+                }
+
                 console.clear();
                 console.log('%c Filter Dikirim ', 'background:#3498db; color:white; padding:8px; font-weight:bold;');
                 console.log('Date Range :', dateRange || '(kosong)');
@@ -279,6 +299,11 @@
                     return;
                 }
 
+                loadDepartment(appId);
+            });
+
+            function loadDepartment(appId) {
+                const $deptSelect = $('#filterDepartment');
                 $.ajax({
                     url: 'http://localhost:8080/index.php/tbdepartements/get_names/' + encodeURIComponent(appId),
                     method: 'GET',
@@ -305,13 +330,75 @@
                             .prop('disabled', false);
                     }
                 });
+            }
+
+            // Ketika Department berubah → load Employee sesuai Department
+            $('#filterDepartment').on('change', function() {
+                const department = $(this).val()?.trim();
+                const appId = $('#filterAppID').val()?.trim();
+                const $empSelect = $('#filterEmployee');
+
+                $empSelect.empty().prop('disabled', true);
+                $empSelect.append('<option value="">-- Loading Employee... --</option>');
+
+                // Jika tidak pilih AppID atau Department → reset employee
+                if (!appId || !department) {
+                    $empSelect.empty()
+                        .append('<option value="">-- Semua Employee --</option>')
+                        .prop('disabled', false)
+                        .trigger('change');
+                    return;
+                }
+
+                // AJAX ambil employee
+                loadEmployee(appId, department);
+                
             });
 
+            function loadEmployee(appId, department) {
+                const $empSelect = $('#filterEmployee');
+                $.ajax({
+                    url: 'http://localhost:8080/index.php/tbemployee/get_by_department',
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        appid: appId,
+                        department_id: department
+                    },
+                    timeout: 10000,
+                    success: function(res) {
+                        $empSelect.empty();
 
+                        if (res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
+                            console.log(res.data);
+                            res.data.forEach(function(emp) {
+                                $empSelect.append(
+                                    `<option value="${emp.employee_id}">${emp.employee_full_name}</option>`
+                                );
+                            });
+                        } else {
+                            $empSelect.append('<option value="">Tidak ada employee</option>');
+                        }
 
+                        $empSelect.prop('disabled', false).trigger('change');
+                    },
+                    error: function(xhr) {
+                        console.error('Gagal load employee:', xhr.responseText);
+                        $empSelect.empty()
+                            .append('<option value="">Gagal memuat employee</option>')
+                            .prop('disabled', false)
+                            .trigger('change');
+                    }
+                });
+            }
 
             table.buttons().container().addClass('mb-3').prependTo('.table-container');
+            
+            loadDepartment("IA01M168064F20250505533");
+
         });
+
+
     </script>
 </body>
 

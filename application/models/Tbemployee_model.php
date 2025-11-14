@@ -38,10 +38,10 @@ class Tbemployee_model extends CI_Model
 
     public function get_by_department($appid, $department_id)
     {
-        $this->db->select('employee_id, employee_full_name');
+        $this->db->select('employee_id, employee_full_name,departement_id');
         $this->db->from('tbemployee');
         $this->db->where('appid', $appid);
-        $this->db->where('department_id', $department_id);
+        $this->db->where('departement_id', $department_id);
         $this->db->order_by('employee_full_name', 'ASC');
 
         return $this->db->get()->result_array();
