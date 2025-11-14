@@ -42,4 +42,34 @@ class Tbemployee extends CI_Controller
             ->set_content_type('application/json')
             ->set_output(json_encode($response));
     }
+
+    public function get_by_department()
+    {
+        if ($this->input->method() !== 'get') {
+            show_error('Method Not Allowed', 405);
+            return;
+        }
+
+        $appid          = $this->input->get('appid', TRUE);
+        $department_id  = $this->input->get('department_id', TRUE);
+
+        if (empty($appid) || empty($department_id)) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'message' => 'appid dan department_id wajib dikirim'
+                ]));
+            return;
+        }
+
+        $employees = $this->Tbemployee_model->get_by_department($appid, $department_id);
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status' => 'success',
+                'data'   => $employees
+            ]));
+    }
 }

@@ -74,15 +74,18 @@
                     <label class="form-label small text-muted mb-1">AppID</label>
                     <select class="form-select select2" id="filterAppID">
                         <option value="">-- Semua AppID --</option>
-                        <option value="IA01M168064F20250505533">IA01M168064F20250505533</option>
+                        <?php foreach ($iausers as $row): ?>
+                            <option value="<?= htmlspecialchars($row['appid']); ?>"
+                                <?= $row['appid'] === 'IA01M168064F20250505533' ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($row['appid']); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <label class="form-label small text-muted mb-1">Department</label>
                     <select class="form-select select2" id="filterDepartment">
                         <option value="">-- Semua Department --</option>
-                        <option value="Team Work Departement 1">Team Work Departement 1</option>
-                        <option value="Marketing">Marketing</option>
                     </select>
                 </div>
                 <div class="col-lg-3 col-md-6">
@@ -259,6 +262,53 @@
                 table.clear().draw();
                 console.clear();
             });
+
+            // Ketika AppID berubah → load Department sesuai AppID
+            $('#filterAppID').on('change', function() {
+                const appId = $(this).val()?.trim();
+                const $deptSelect = $('#filterDepartment');
+
+                $deptSelect.empty().prop('disabled', true);
+                $deptSelect.append('<option value="">-- Loading Department... --</option>');
+
+                if (!appId) {
+                    $deptSelect.empty()
+                        .append('<option value="">-- Semua Department --</option>')
+                        .prop('disabled', false)
+                        .trigger('change');
+                    return;
+                }
+
+                $.ajax({
+                    url: 'http://localhost:8080/index.php/tbdepartements/get_names/' + encodeURIComponent(appId),
+                    method: 'GET',
+                    dataType: 'json',
+                    timeout: 10000,
+                    success: function(res) {
+                        $deptSelect.empty();
+                        $deptSelect.append('<option value="">-- Semua Department --</option>');
+
+                        if (res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
+                            res.data.forEach(function(dept) {
+                                $deptSelect.append(`<option value="${dept.id}">${dept.name}</option>`);
+                            });
+                        } else {
+                            $deptSelect.append('<option value="">Tidak ada department</option>');
+                        }
+
+                        $deptSelect.prop('disabled', false).trigger('change');
+                    },
+                    error: function(xhr) {
+                        console.error('Gagal load department:', xhr.responseText);
+                        $deptSelect.empty()
+                            .append('<option value="">Gagal memuat department</option>')
+                            .prop('disabled', false);
+                    }
+                });
+            });
+
+
+
 
             table.buttons().container().addClass('mb-3').prependTo('.table-container');
         });
