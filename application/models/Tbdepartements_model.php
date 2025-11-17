@@ -21,6 +21,7 @@ class Tbdepartements_model extends CI_Model
         $this->db->select('id, name');                    // ambil id dan name
         $this->db->from($this->table);
         $this->db->where('appid', $appid);                // filter berdasarkan appid
+        $this->db->where('is_delete', 0);                // filter berdasarkan appid
         $this->db->distinct();                            // jika ada duplikat
         $this->db->order_by('name', 'ASC');
 

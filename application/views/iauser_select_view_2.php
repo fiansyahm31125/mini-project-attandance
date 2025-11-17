@@ -159,7 +159,7 @@
 
             const table = $('#attendanceTable').DataTable({
                 responsive: true,
-                pageLength: 25,
+                pageLength: 10,
                 order: [
                     [4, 'desc']
                 ],
@@ -185,7 +185,7 @@
 
             // Helper: format waktu absen
             function formatTime(time) {
-                return time ? time.substring(11, 16) : '<span class="text-dark">-</span>';
+                return time ? time.substring(11, 19) : '<span class="text-dark">-</span>';
             }
 
             function loadAttendanceData() {
@@ -255,8 +255,8 @@
                                     formatTime(row.in),
                                     formatTime(row.out),
                                     isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.work_duration,
-                                    row.late > 0 ? `<span class="text-danger fw-bold">${row.late}</span>` : '0',
-                                    row.early_out > 0 ? `<span class="text-warning fw-bold">${row.early_out}</span>` : '0',
+                                    minutesToTime(row.late),
+                                    minutesToTime(row.early_out),
                                     minutesToTime(row.overtime_start),
                                     minutesToTime(row.overtime_end)
                                 ];

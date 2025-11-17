@@ -42,7 +42,8 @@ class Tbemployee_model extends CI_Model
         $this->db->from('tbemployee');
         $this->db->where('appid', $appid);
         $this->db->where('departement_id', $department_id);
-        $this->db->order_by('employee_full_name', 'ASC');
+        $this->db->where('is_del !=', 1);
+        $this->db->order_by('employee_id', 'ASC');
 
         return $this->db->get()->result_array();
     }
