@@ -73,6 +73,9 @@ class Tbuserofrun_model extends CI_Model
         $this->db->or_where('r.end_date IS NULL', null, false);
         $this->db->group_end();
 
+        // 🔹 ORDER BY r.start_date
+        $this->db->order_by('d.start_time', 'ASC');   // atau DESC
+
         $this->db->limit(1);
 
         $query = $this->db->get();

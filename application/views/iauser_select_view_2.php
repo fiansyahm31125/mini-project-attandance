@@ -194,22 +194,22 @@
                 const department = $('#filterDepartment').val() || '';
                 const employees = $('#filterEmployee').val() || [];
 
-                if(!dateRange) {
+                if (!dateRange) {
                     alert('Please select a date range');
                     return;
                 }
 
-                if(!employees.length) {
+                if (!employees.length) {
                     alert('Please select at least one employee');
                     return;
                 }
 
-                if(!appId) {
+                if (!appId) {
                     alert('Please select an app ID');
                     return;
                 }
 
-                if(!department) {
+                if (!department) {
                     alert('Please select a department');
                     return;
                 }
@@ -352,7 +352,7 @@
 
                 // AJAX ambil employee
                 loadEmployee(appId, department);
-                
+
             });
 
             function loadEmployee(appId, department) {
@@ -393,12 +393,10 @@
             }
 
             table.buttons().container().addClass('mb-3').prependTo('.table-container');
-            
+
             loadDepartment("IA01M168064F20250505533");
 
         });
-
-
     </script>
 </body>
 

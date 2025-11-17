@@ -49,7 +49,7 @@ class Tbusertempsch_model extends CI_Model
         $this->db->where('t.user_id', $user_id);
         $this->db->where('t.start_date <=', $date);
         $this->db->where('t.end_date >=', $date);
-        $this->db->order_by('t.start_date', 'DESC');
+        $this->db->order_by('s.start_time', 'ASC');
         $this->db->limit(1); // ambil 1 record aktif
 
         $query = $this->db->get();

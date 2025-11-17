@@ -26,6 +26,7 @@ class Tbuserusedclasses_model extends CI_Model
         $this->db->join('tbschclass s', 's.id = u.schclass_id', 'left');
         $this->db->where('u.appid', $appid);
         $this->db->where('u.user_id', $user_id);
+        $this->db->order_by('s.start_time', 'ASC');
         $this->db->limit(1);
 
         $query = $this->db->get();

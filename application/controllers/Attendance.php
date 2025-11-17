@@ -26,6 +26,10 @@ class Attendance extends CI_Controller
         $start = new DateTime("$date $start_time");
         $end   = new DateTime("$date $end_time");
 
+        if ($end_checkIn != null) {
+            $end_checkIn = new DateTime("$end_checkIn");
+        }
+
         // Jika jam akhir lebih kecil dari jam awal, berarti lintas hari
         if ($end_checkIn != null && $start < $end_checkIn) {
             $start->modify('+1 day');
@@ -106,14 +110,14 @@ class Attendance extends CI_Controller
 
         // Overtime Start
         $overtimeStartMinutes = 0;
-        if ($actualInDT !== null && $actualInDT < $datetime_scheduledIn) {
+        if ($actualInDT !== null && $actualInDT < $datetime_scheduledIn && $overtime_start != 0) {
             $total_overtime_start = ($datetime_scheduledIn->getTimestamp() - $actualInDT->getTimestamp()) / 60;
             $overtimeStartMinutes = ($total_overtime_start >= $overtime_start) ? (int)$total_overtime_start : 0;
         }
 
         // Overtime End
         $overtimeEndMinutes = 0;
-        if ($actualOutDT !== null && $actualOutDT > $datetime_scheduledOut) {
+        if ($actualOutDT !== null && $actualOutDT > $datetime_scheduledOut && $overtime_end != 0) {
             $total_overtime_end = ($actualOutDT->getTimestamp() - $datetime_scheduledOut->getTimestamp()) / 60;
             $overtimeEndMinutes = ($total_overtime_end >= $overtime_end) ? (int)$total_overtime_end : 0;
         }
@@ -301,8 +305,8 @@ class Attendance extends CI_Controller
             $currentDate = $date->format("Y-m-d");
 
             foreach ($employees as $emp) {
-                $item = $this->get_by_appid_and_empid_api($appid, $emp, $currentDate)['data'];
-                array_push($all_data, $item);
+                $item = $this->get_by_appid_and_empid_api($appid, $emp, $currentDate);
+                if ($item['status'] == true) array_push($all_data, $item['data']);
             }
         }
 
