@@ -236,7 +236,7 @@
                         if (res.status === 'success' && res.data.length > 0) {
                             console.log(res.data);
                             const formattedData = res.data.map((row, index) => {
-                                const workHour = row.work_hour.replace(/:00-/g, '-').replace(/:00/g, '');
+                                const workHour = row.work_hour;
                                 const isAbsent = !row.in && !row.out;
 
                                 let displayDate = row.date; // default
@@ -254,7 +254,7 @@
                                     workHour,
                                     formatTime(row.in),
                                     formatTime(row.out),
-                                    isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.work_duration.substring(0, 5),
+                                    isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.work_duration,
                                     row.late > 0 ? `<span class="text-danger fw-bold">${row.late}</span>` : '0',
                                     row.early_out > 0 ? `<span class="text-warning fw-bold">${row.early_out}</span>` : '0',
                                     minutesToTime(row.overtime_start),

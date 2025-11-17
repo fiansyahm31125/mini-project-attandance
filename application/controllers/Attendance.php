@@ -21,7 +21,7 @@ class Attendance extends CI_Controller
      * Endpoint: /index.php/tbusertempsch/get_by_appid_and_empid_api/{appid}/{empid}
      */
 
-    function makeDateTime($date, $start_time, $end_time, $end_checkIn = null)
+    function makeDateTime($date, $start_time, $end_time, $end_checkIn = null, $status = null)
     {
         $start = new DateTime("$date $start_time");
         $end   = new DateTime("$date $end_time");
@@ -31,7 +31,9 @@ class Attendance extends CI_Controller
         }
 
         // Jika jam akhir lebih kecil dari jam awal, berarti lintas hari
-        if ($end_checkIn != null && $start < $end_checkIn) {
+        if ($end_checkIn != null && $start > $end_checkIn && $status == 'i') {
+            $start->modify('-1 day');
+        } else if ($end_checkIn != null && $start < $end_checkIn && $status == 'o') {
             $start->modify('+1 day');
             $end->modify('+1 day');
         } else if ($end < $start) {
@@ -140,10 +142,11 @@ class Attendance extends CI_Controller
         $emp_sch_temp = $this->Tbusertempsch_model->get_with_schclass($appid, $empid, $date);
         if ($emp_sch_temp) {
 
-            $ckkin = $this->makeDateTime($date, $emp_sch_temp['start_checkin_time'], $emp_sch_temp['end_checkin_time']);
+            $start = "$date {$emp_sch_temp['start_time']}";
+            $ckkin = $this->makeDateTime($date, $emp_sch_temp['start_checkin_time'], $emp_sch_temp['end_checkin_time'], $start, 'i');
             $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time'], $ckkin['end']);
+            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time'], $ckkin['end'], 'o');
             $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
 
             $item = new stdClass();
@@ -177,10 +180,11 @@ class Attendance extends CI_Controller
         $emp_used_class = $this->Tbuserusedclasses_model->get_with_schclass($appid, $empid);
         if ($emp_used_class) {
 
-            $ckkin = $this->makeDateTime($date, $emp_used_class['start_checkin_time'], $emp_used_class['end_checkin_time']);
+            $start = "$date {$emp_used_class['start_time']}";
+            $ckkin = $this->makeDateTime($date, $emp_used_class['start_checkin_time'], $emp_used_class['end_checkin_time'], $start, 'i');
             $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-            $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time'], $ckkin['end']);
+            $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time'], $ckkin['end'], 'o');
             $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
 
             $item = new stdClass();
@@ -214,10 +218,11 @@ class Attendance extends CI_Controller
         $num_run = $this->Tbuserofrun_model->get_with_numrun($appid, $empid, $date);
         if ($num_run) {
 
-            $ckkin = $this->makeDateTime($date, $num_run['start_checkin_time'], $num_run['end_checkin_time']);
+            $start = "$date {$num_run['start_time']}";
+            $ckkin = $this->makeDateTime($date, $num_run['start_checkin_time'], $num_run['end_checkin_time'], $start, 'i');
             $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-            $ckkout = $this->makeDateTime($date, $num_run['start_checkout_time'], $num_run['end_checkout_time'], $ckkin['end']);
+            $ckkout = $this->makeDateTime($date, $num_run['start_checkout_time'], $num_run['end_checkout_time'], $ckkin['end'], 'o');
             $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
 
             $item = new stdClass();
