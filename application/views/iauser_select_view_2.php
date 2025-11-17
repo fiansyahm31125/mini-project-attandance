@@ -125,6 +125,9 @@
                 <tbody></tbody>
             </table>
         </div>
+
+        <div id="summaryTableContainer" class="mt-4"></div>
+
     </div>
 
     <!-- Scripts -->
@@ -144,6 +147,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 
     <script>
+        // Helper: menit → jam:menit
+        function minutesToTime(minutes) {
+            if (!minutes || minutes == 0) return '-';
+            const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+            const m = (minutes % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        // Helper: format waktu absen
+        function formatTime(time) {
+            return time ? time.substring(11, 19) : '<span class="text-dark">-</span>';
+        }
+
         $(document).ready(function() {
             const datePicker = flatpickr("#filterDateRange", {
                 mode: "range",
@@ -174,19 +190,6 @@
                     className: "text-center"
                 }]
             });
-
-            // Helper: menit → jam:menit
-            function minutesToTime(minutes) {
-                if (!minutes || minutes == 0) return '-';
-                const h = Math.floor(minutes / 60).toString().padStart(2, '0');
-                const m = (minutes % 60).toString().padStart(2, '0');
-                return `${h}:${m}`;
-            }
-
-            // Helper: format waktu absen
-            function formatTime(time) {
-                return time ? time.substring(11, 19) : '<span class="text-dark">-</span>';
-            }
 
             function loadAttendanceData() {
                 const dateRange = $('#filterDateRange').val() || '';
@@ -232,10 +235,77 @@
                     },
                     success: function(res) {
                         table.clear();
-
+                        let informationDetail = {};
                         if (res.status === 'success' && res.data.length > 0) {
                             console.log(res.data);
+
                             const formattedData = res.data.map((row, index) => {
+                                // --- Jika belum ada key nama, inisialisasi ---
+                                if (!informationDetail[row.employee_name]) {
+                                    informationDetail[row.employee_name] = {
+                                        total_late_count: 0,
+                                        total_late_minutes: 0,
+
+                                        total_early_out_count: 0,
+                                        total_early_out_minutes: 0,
+
+                                        total_ot_start_count: 0,
+                                        total_ot_start_minutes: 0,
+
+                                        total_ot_end_count: 0,
+                                        total_ot_end_minutes: 0,
+
+                                        total_ot_count: 0,
+                                        total_ot_minutes: 0,
+
+                                        total_pc_count: 0,
+                                        total_pc_minutes: 0
+                                    };
+                                }
+
+                                let info = informationDetail[row.employee_name];
+
+                                // --- Hitung LATE ---
+                                if (row.late && row.late > 0) {
+                                    info.total_late_count++;
+                                    info.total_late_minutes += row.late;
+                                }
+
+                                // --- Hitung EARLY OUT ---
+                                if (row.early_out && row.early_out > 0) {
+                                    info.total_early_out_count++;
+                                    info.total_early_out_minutes += row.early_out;
+                                }
+
+                                // --- Hitung OT START ---
+                                if (row.overtime_start && row.overtime_start > 0) {
+                                    info.total_ot_start_count++;
+                                    info.total_ot_start_minutes += row.overtime_start;
+                                }
+
+                                // --- Hitung OT END ---
+                                if (row.overtime_end && row.overtime_end > 0) {
+                                    info.total_ot_end_count++;
+                                    info.total_ot_end_minutes += row.overtime_end;
+                                }
+
+                                // --- Total OT (start + end) ---
+                                let totalOT = (row.overtime_start || 0) + (row.overtime_end || 0);
+                                if (totalOT > 0) {
+                                    info.total_ot_count++;
+                                    info.total_ot_minutes += totalOT;
+                                }
+
+                                // --- PC (anggap: work_duration == '-' berarti PC) ---
+                                if (!row.in && !row.out) {
+                                    info.total_pc_count++;
+                                    info.total_pc_minutes += 0;
+                                }
+
+                                // ===========================
+                                // Bagian tampilan tabel
+                                // ===========================
+
                                 const workHour = row.work_hour;
                                 const isAbsent = !row.in && !row.out;
 
@@ -262,7 +332,10 @@
                                 ];
                             });
 
+                            console.log("INFORMATION DETAIL:", informationDetail);
+
                             table.rows.add(formattedData).draw();
+                            renderSummaryTable(informationDetail);
                         } else {
                             table.draw();
                         }
@@ -397,6 +470,63 @@
             loadDepartment("IA01M168064F20250505533");
 
         });
+
+
+        function renderSummaryTable(infoData) {
+            let html = `
+                <table class="table table-bordered table-striped mt-3">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nama</th>
+                            <th>Terlambat (kali)</th>
+                            <th>Terlambat (waktu)</th>
+                            <th>Early Out (kali)</th>
+                            <th>Early Out (waktu)</th>
+                            <th>OT Awal (kali)</th>
+                            <th>OT Awal (waktu)</th>
+                            <th>OT Akhir (kali)</th>
+                            <th>OT Akhir (waktu)</th>
+                            <th>Total OT (kali)</th>
+                            <th>Total OT (waktu)</th>
+                            <th>PC (kali)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const name in infoData) {
+                const d = infoData[name];
+
+                html += `
+            <tr>
+                <td>${name}</td>
+                <td>${d.total_late_count}</td>
+                <td>${minutesToTime(d.total_late_minutes)}</td>
+
+                <td>${d.total_early_out_count}</td>
+                <td>${minutesToTime(d.total_early_out_minutes)}</td>
+
+                <td>${d.total_ot_start_count}</td>
+                <td>${minutesToTime(d.total_ot_start_minutes)}</td>
+
+                <td>${d.total_ot_end_count}</td>
+                <td>${minutesToTime(d.total_ot_end_minutes)}</td>
+
+                <td>${d.total_ot_count}</td>
+                <td>${minutesToTime(d.total_ot_minutes)}</td>
+
+                <td>${d.total_pc_count}</td>
+            </tr>
+        `;
+            }
+
+            html += `
+            </tbody>
+        </table>
+    `;
+
+            document.getElementById("summaryTableContainer").innerHTML = html;
+        }
     </script>
 </body>
 
