@@ -180,10 +180,6 @@
                     [4, 'desc']
                 ],
                 dom: "<'row'<'col-md-6'B><'col-md-6'f>>rt<'row'<'col-md-6'i><'col-md-6'p>>",
-                buttons: ['copy', 'csv', 'excel', 'pdf', 'print', 'colvis'].map(t => ({
-                    extend: t,
-                    className: 'btn-sm btn-outline-secondary'
-                })),
                 columnDefs: [{
                     targets: 0,
                     width: "50px",
@@ -467,44 +463,46 @@
 
         function renderSummaryTable(infoData) {
             let html = `
-                <table class="table table-bordered table-striped mt-3">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Nama</th>
-                            <th>Terlambat (kali)</th>
-                            <th>Terlambat (waktu)</th>
-                            <th>OT Akhir (kali)</th>
-                            <th>OT Akhir (waktu)</th>
-                            <th>OT Awal (kali)</th>
-                            <th>OT Awal (waktu)</th>
-                            <th>Total OT (kali)</th>
-                            <th>Total OT (waktu)</th>
-                            <th>Early Out (kali)</th>
-                            <th>Early Out (waktu)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+        <table id="summaryTable" class="table table-bordered table-striped mt-4" style="width:100%">
+            <thead class="table-dark">
+                <tr>
+                    <th>No</th>
+                    <th>Nama</th>
+                    <th>Terlambat (kali)</th>
+                    <th>Terlambat (waktu)</th>
+                    <th>OT Akhir (kali)</th>
+                    <th>OT Akhir (waktu)</th>
+                    <th>OT Awal (kali)</th>
+                    <th>OT Awal (waktu)</th>
+                    <th>Total OT (kali)</th>
+                    <th>Total OT (waktu)</th>
+                    <th>Early Out (kali)</th>
+                    <th>Early Out (waktu)</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
 
+            let no = 1;
             for (const name in infoData) {
                 const d = infoData[name];
 
                 html += `
             <tr>
+                <td>${no++}</td>
                 <td>${name}</td>
-                
                 <td>${d.total_late_count}</td>
                 <td>${minutesToTime(d.total_late_minutes)}</td>
-                
+
                 <td>${d.total_ot_end_count}</td>
                 <td>${minutesToTime(d.total_ot_end_minutes)}</td>
-                
+
                 <td>${d.total_ot_start_count}</td>
                 <td>${minutesToTime(d.total_ot_start_minutes)}</td>
-                
+
                 <td>${d.total_ot_count}</td>
                 <td>${minutesToTime(d.total_ot_minutes)}</td>
-                
+
                 <td>${d.total_early_out_count}</td>
                 <td>${minutesToTime(d.total_early_out_minutes)}</td>
             </tr>
@@ -517,6 +515,21 @@
     `;
 
             document.getElementById("summaryTableContainer").innerHTML = html;
+
+            // Hancurkan DataTable sebelumnya (jika ada)
+            if ($.fn.DataTable.isDataTable('#summaryTable')) {
+                $('#summaryTable').DataTable().destroy();
+            }
+
+            // Inisialisasi DataTable baru
+            $('#summaryTable').DataTable({
+                paging: true,
+                searching: true,
+                ordering: true,
+                pageLength: 10,
+                dom: "<'row'<'col-md-6'B><'col-md-6'f>>" +
+                    "rt<'row'<'col-md-6'i><'col-md-6'p>>"
+            });
         }
     </script>
 </body>
