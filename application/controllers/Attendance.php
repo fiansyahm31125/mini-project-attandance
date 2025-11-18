@@ -139,116 +139,246 @@ class Attendance extends CI_Controller
         // ---------------------------
         // 1. Temporary Schedule
         // ---------------------------
-        $emp_sch_temp = $this->Tbusertempsch_model->get_with_schclass($appid, $empid, $date);
-        if ($emp_sch_temp) {
+        $emp_schs = $this->Tbusertempsch_model->get_with_schclass($appid, $empid, $date);
 
-            $start = "$date {$emp_sch_temp['start_time']}";
-            $ckkin = $this->makeDateTime($date, $emp_sch_temp['start_checkin_time'], $emp_sch_temp['end_checkin_time'], $start, 'i');
-            $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+        if ($emp_schs) {
 
-            $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time'], $ckkin['end'], 'o');
-            $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+            $items = []; // pastikan array
 
-            $item = new stdClass();
-            $item->employee_name  = $emp_data['employee_full_name'];
-            $item->department     = $emp_data['name'];
-            $item->schedule_type  = 'Temporary(' . $emp_sch_temp['name'] . ')';
-            $item->date           = $date;
-            $item->work_hour      = $emp_sch_temp['start_time'] . '-' . $emp_sch_temp['end_time'];
-            $item->in             = $dateTimeCheckin->first_checkin;
-            $item->out            = $dateTimeCheckout->last_checkout;
-            $item->work_duration  = ($item->in && $item->out) ? $this->intervalWork($item->in, $item->out) : 0;
+            foreach ($emp_schs as $emp_sch_temp) {
 
-            $calcLateEarly = $this->calculateLateEarlyOut($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['late_minutes'], $emp_sch_temp['early_minutes']);
-            $item->late         = $calcLateEarly['late_minutes'];
-            $item->early_out    = $calcLateEarly['early_out_minutes'];
+                $start = "$date {$emp_sch_temp['start_time']}";
+                $ckkin = $this->makeDateTime($date, $emp_sch_temp['start_checkin_time'], $emp_sch_temp['end_checkin_time'], $start, 'i');
+                $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
 
-            $calcOT = $this->calculateOvertime($date, $emp_sch_temp['start_time'], $item->in, $emp_sch_temp['end_time'], $item->out, $emp_sch_temp['overtime_start'], $emp_sch_temp['overtime_end']);
-            $item->overtime_start = $calcOT['overtime_start_minutes'];
-            $item->overtime_end   = $calcOT['overtime_end_minutes'];
+                $ckkout = $this->makeDateTime($date, $emp_sch_temp['start_checkout_time'], $emp_sch_temp['end_checkout_time'], $ckkin['end'], 'o');
+                $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+
+                $item = new stdClass();
+                $item->employee_name  = $emp_data['employee_full_name'];
+                $item->department     = $emp_data['name'];
+                $item->schedule_type  = 'Temporary(' . $emp_sch_temp['name'] . ')';
+                $item->date           = $date;
+                $item->work_hour      = $emp_sch_temp['start_time'] . '-' . $emp_sch_temp['end_time'];
+                $item->in             = $dateTimeCheckin->first_checkin;
+                $item->out            = $dateTimeCheckout->last_checkout;
+                $item->work_duration  = ($item->in && $item->out) ? $this->intervalWork($item->in, $item->out) : 0;
+
+                $calcLateEarly = $this->calculateLateEarlyOut(
+                    $date,
+                    $emp_sch_temp['start_time'],
+                    $item->in,
+                    $emp_sch_temp['end_time'],
+                    $item->out,
+                    $emp_sch_temp['late_minutes'],
+                    $emp_sch_temp['early_minutes']
+                );
+
+                $item->late      = $calcLateEarly['late_minutes'];
+                $item->early_out = $calcLateEarly['early_out_minutes'];
+
+                $calcOT = $this->calculateOvertime(
+                    $date,
+                    $emp_sch_temp['start_time'],
+                    $item->in,
+                    $emp_sch_temp['end_time'],
+                    $item->out,
+                    $emp_sch_temp['overtime_start'],
+                    $emp_sch_temp['overtime_end']
+                );
+
+                $item->overtime_start = $calcOT['overtime_start_minutes'];
+                $item->overtime_end   = $calcOT['overtime_end_minutes'];
+
+                $items[] = $item;
+            }
 
             return [
                 'status' => true,
-                'data'   => $item,
-                'raw'    => $emp_sch_temp
+                'data'   => $items,
+                'raw'    => $emp_schs,
+                'count'  => count($items)
             ];
         }
+
 
         // ---------------------------
         // 2. Used Classes (Automatic)
         // ---------------------------
-        $emp_used_class = $this->Tbuserusedclasses_model->get_with_schclass($appid, $empid);
-        if ($emp_used_class) {
+        $emp_used_classes = $this->Tbuserusedclasses_model->get_with_schclass($appid, $empid);
 
-            $start = "$date {$emp_used_class['start_time']}";
-            $ckkin = $this->makeDateTime($date, $emp_used_class['start_checkin_time'], $emp_used_class['end_checkin_time'], $start, 'i');
-            $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+        if ($emp_used_classes && count($emp_used_classes) > 0) {
 
-            $ckkout = $this->makeDateTime($date, $emp_used_class['start_checkout_time'], $emp_used_class['end_checkout_time'], $ckkin['end'], 'o');
-            $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+            $items = [];
+            $raw = [];
 
-            $item = new stdClass();
-            $item->employee_name  = $emp_data['employee_full_name'];
-            $item->department     = $emp_data['name'];
-            $item->schedule_type  = 'Automatic(' . $emp_used_class['name'] . ')';
-            $item->date           = $date;
-            $item->work_hour      = $emp_used_class['start_time'] . '-' . $emp_used_class['end_time'];
-            $item->in             = $dateTimeCheckin->first_checkin;
-            $item->out            = $dateTimeCheckout->last_checkout;
-            $item->work_duration  = ($item->in && $item->out) ? $this->intervalWork($item->in, $item->out) : 0;
+            foreach ($emp_used_classes as $emp_used_class) {
 
-            $calcLateEarly = $this->calculateLateEarlyOut($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['late_minutes'], $emp_used_class['early_minutes']);
-            $item->late         = $calcLateEarly['late_minutes'];
-            $item->early_out    = $calcLateEarly['early_out_minutes'];
+                $start = "$date {$emp_used_class['start_time']}";
+                $ckkin = $this->makeDateTime(
+                    $date,
+                    $emp_used_class['start_checkin_time'],
+                    $emp_used_class['end_checkin_time'],
+                    $start,
+                    'i'
+                );
 
-            $calcOT = $this->calculateOvertime($date, $emp_used_class['start_time'], $item->in, $emp_used_class['end_time'], $item->out, $emp_used_class['overtime_start'], $emp_used_class['overtime_end']);
-            $item->overtime_start = $calcOT['overtime_start_minutes'];
-            $item->overtime_end   = $calcOT['overtime_end_minutes'];
+                $dateTimeCheckin = $this->Tbcheckinout_mobile_model
+                    ->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+
+                $ckkout = $this->makeDateTime(
+                    $date,
+                    $emp_used_class['start_checkout_time'],
+                    $emp_used_class['end_checkout_time'],
+                    $ckkin['end'],
+                    'o'
+                );
+
+                $dateTimeCheckout = $this->Tbcheckinout_mobile_model
+                    ->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+
+                $item = new stdClass();
+                $item->employee_name  = $emp_data['employee_full_name'];
+                $item->department     = $emp_data['name'];
+                $item->schedule_type  = 'Automatic(' . $emp_used_class['name'] . ')';
+                $item->date           = $date;
+                $item->work_hour      = $emp_used_class['start_time'] . '-' . $emp_used_class['end_time'];
+                $item->in             = $dateTimeCheckin->first_checkin ?? null;
+                $item->out            = $dateTimeCheckout->last_checkout ?? null;
+                $item->work_duration  = ($item->in && $item->out)
+                    ? $this->intervalWork($item->in, $item->out)
+                    : 0;
+
+                // Hitung late/early
+                $calcLateEarly = $this->calculateLateEarlyOut(
+                    $date,
+                    $emp_used_class['start_time'],
+                    $item->in,
+                    $emp_used_class['end_time'],
+                    $item->out,
+                    $emp_used_class['late_minutes'],
+                    $emp_used_class['early_minutes']
+                );
+
+                $item->late         = $calcLateEarly['late_minutes'];
+                $item->early_out    = $calcLateEarly['early_out_minutes'];
+
+                // Hitung OT
+                $calcOT = $this->calculateOvertime(
+                    $date,
+                    $emp_used_class['start_time'],
+                    $item->in,
+                    $emp_used_class['end_time'],
+                    $item->out,
+                    $emp_used_class['overtime_start'],
+                    $emp_used_class['overtime_end']
+                );
+
+                $item->overtime_start = $calcOT['overtime_start_minutes'];
+                $item->overtime_end   = $calcOT['overtime_end_minutes'];
+
+                // simpan item
+                $items[] = $item;
+                $raw[] = $emp_used_classes;
+            }
 
             return [
                 'status' => true,
-                'data'   => $item,
-                'raw'    => $emp_used_class
+                'data'   => $items,
+                'raw' => $raw,
+                'count'  => count($items)
             ];
         }
+
 
         // ---------------------------
         // 3. NumRun (Schedule)
         // ---------------------------
-        $num_run = $this->Tbuserofrun_model->get_with_numrun($appid, $empid, $date);
-        if ($num_run) {
+        $num_runs = $this->Tbuserofrun_model->get_with_numrun($appid, $empid, $date);
 
-            $start = "$date {$num_run['start_time']}";
-            $ckkin = $this->makeDateTime($date, $num_run['start_checkin_time'], $num_run['end_checkin_time'], $start, 'i');
-            $dateTimeCheckin = $this->Tbcheckinout_mobile_model->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+        if ($num_runs && count($num_runs) > 0) {
 
-            $ckkout = $this->makeDateTime($date, $num_run['start_checkout_time'], $num_run['end_checkout_time'], $ckkin['end'], 'o');
-            $dateTimeCheckout = $this->Tbcheckinout_mobile_model->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+            $items = [];
+            $raw = [];
 
-            $item = new stdClass();
-            $item->employee_name  = $emp_data['employee_full_name'];
-            $item->department     = $emp_data['name'];
-            $item->schedule_type  = 'Schedule(' . $num_run['run_name'] . ')';
-            $item->date           = $date;
-            $item->work_hour      = $num_run['start_time'] . '-' . $num_run['end_time'];
-            $item->in             = $dateTimeCheckin->first_checkin;
-            $item->out            = $dateTimeCheckout->last_checkout;
-            $item->work_duration  = ($item->in && $item->out) ? $this->intervalWork($item->in, $item->out) : 0;
+            foreach ($num_runs as $num_run) {
 
-            $calcLateEarly = $this->calculateLateEarlyOut($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['late_minutes'], $num_run['early_minutes']);
-            $item->late         = $calcLateEarly['late_minutes'];
-            $item->early_out    = $calcLateEarly['early_out_minutes'];
+                $start = "$date {$num_run['start_time']}";
+                $ckkin = $this->makeDateTime(
+                    $date,
+                    $num_run['start_checkin_time'],
+                    $num_run['end_checkin_time'],
+                    $start,
+                    'i'
+                );
 
-            $calcOT = $this->calculateOvertime($date, $num_run['start_time'], $item->in, $num_run['end_time'], $item->out, $num_run['overtime_start'], $num_run['overtime_end']);
-            $item->overtime_start = $calcOT['overtime_start_minutes'];
-            $item->overtime_end   = $calcOT['overtime_end_minutes'];
+                $dateTimeCheckin = $this->Tbcheckinout_mobile_model
+                    ->get_checkin($empid, $ckkin['start'], $ckkin['end']);
+
+                $ckkout = $this->makeDateTime(
+                    $date,
+                    $num_run['start_checkout_time'],
+                    $num_run['end_checkout_time'],
+                    $ckkin['end'],
+                    'o'
+                );
+
+                $dateTimeCheckout = $this->Tbcheckinout_mobile_model
+                    ->get_checkout($empid, $ckkout['start'], $ckkout['end']);
+
+                $item = new stdClass();
+                $item->employee_name  = $emp_data['employee_full_name'];
+                $item->department     = $emp_data['name'];
+                $item->schedule_type  = 'Schedule(' . $num_run['run_name'] . ')';
+                $item->date           = $date;
+                $item->work_hour      = $num_run['start_time'] . '-' . $num_run['end_time'];
+                $item->in             = $dateTimeCheckin->first_checkin ?? null;
+                $item->out            = $dateTimeCheckout->last_checkout ?? null;
+                $item->work_duration  = ($item->in && $item->out)
+                    ? $this->intervalWork($item->in, $item->out)
+                    : 0;
+
+                // Hitung late / early-out
+                $calcLateEarly = $this->calculateLateEarlyOut(
+                    $date,
+                    $num_run['start_time'],
+                    $item->in,
+                    $num_run['end_time'],
+                    $item->out,
+                    $num_run['late_minutes'],
+                    $num_run['early_minutes']
+                );
+
+                $item->late         = $calcLateEarly['late_minutes'];
+                $item->early_out    = $calcLateEarly['early_out_minutes'];
+
+                // Hitung overtime
+                $calcOT = $this->calculateOvertime(
+                    $date,
+                    $num_run['start_time'],
+                    $item->in,
+                    $num_run['end_time'],
+                    $item->out,
+                    $num_run['overtime_start'],
+                    $num_run['overtime_end']
+                );
+
+                $item->overtime_start = $calcOT['overtime_start_minutes'];
+                $item->overtime_end   = $calcOT['overtime_end_minutes'];
+
+                // SIMPAN KE ARRAY
+                $items[] = $item;
+                $raw[] = $num_run;
+            }
 
             return [
                 'status' => true,
-                'data'   => $item,
-                'raw'    => $num_run
+                'data'  => $items,
+                'raw' => $raw,
+                'count'  => count($items)
             ];
         }
+
 
         // ---------------------------
         // 4. NOT FOUND
@@ -310,8 +440,14 @@ class Attendance extends CI_Controller
             $currentDate = $date->format("Y-m-d");
 
             foreach ($employees as $emp) {
+
                 $item = $this->get_by_appid_and_empid_api($appid, $emp, $currentDate);
-                if ($item['status'] == true) array_push($all_data, $item['data']);
+
+                if ($item['status'] == true && !empty($item['data'])) {
+
+                    // karena data = array of multiple items
+                    $all_data = array_merge($all_data, $item['data']);
+                }
             }
         }
 

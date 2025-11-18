@@ -38,11 +38,11 @@ class Tbusertempsch_model extends CI_Model
         }
 
         $this->db->select('t.id as tempsch_id, t.appid, t.user_id, t.start_date, t.end_date,
-                           t.schclass_id, s.name, 
-                           s.start_time, s.end_time,
-                           s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time,
-                           s.late_minutes,s.early_minutes,
-                           s.overtime_start,s.overtime_end');
+                       t.schclass_id, s.name, 
+                       s.start_time, s.end_time,
+                       s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time,
+                       s.late_minutes,s.early_minutes,
+                       s.overtime_start,s.overtime_end');
         $this->db->from('tbusertempsch t');
         $this->db->join('tbschclass s', 's.id = t.schclass_id', 'left');
         $this->db->where('t.appid', $appid);
@@ -50,12 +50,11 @@ class Tbusertempsch_model extends CI_Model
         $this->db->where('t.start_date <=', $date);
         $this->db->where('t.end_date >=', $date);
         $this->db->order_by('s.start_time', 'ASC');
-        $this->db->limit(1); // ambil 1 record aktif
 
         $query = $this->db->get();
 
         if ($query->num_rows() > 0) {
-            return $query->row_array();
+            return $query->result_array();  // ⬅⬅ ubah menjadi array banyak data
         }
 
         return false;

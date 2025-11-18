@@ -324,9 +324,13 @@
                             console.log("INFORMATION DETAIL:", informationDetail);
 
                             table.rows.add(formattedData).draw();
+                            // Tampilkan summary table
+                            $('#summaryTableContainer').show();
                             renderSummaryTable(informationDetail);
                         } else {
                             table.draw();
+                            // Sembunyikan summary table
+                            $('#summaryTableContainer').hide();
                         }
                     },
                     error: function(xhr) {
