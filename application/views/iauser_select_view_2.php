@@ -256,10 +256,7 @@
                                         total_ot_end_minutes: 0,
 
                                         total_ot_count: 0,
-                                        total_ot_minutes: 0,
-
-                                        total_pc_count: 0,
-                                        total_pc_minutes: 0
+                                        total_ot_minutes: 0
                                     };
                                 }
 
@@ -279,12 +276,14 @@
 
                                 // --- Hitung OT START ---
                                 if (row.overtime_start && row.overtime_start > 0) {
+                                    info.total_ot_count++;
                                     info.total_ot_start_count++;
                                     info.total_ot_start_minutes += row.overtime_start;
                                 }
 
                                 // --- Hitung OT END ---
                                 if (row.overtime_end && row.overtime_end > 0) {
+                                    info.total_ot_count++;
                                     info.total_ot_end_count++;
                                     info.total_ot_end_minutes += row.overtime_end;
                                 }
@@ -292,14 +291,8 @@
                                 // --- Total OT (start + end) ---
                                 let totalOT = (row.overtime_start || 0) + (row.overtime_end || 0);
                                 if (totalOT > 0) {
-                                    info.total_ot_count++;
+                                    // info.total_ot_count++;
                                     info.total_ot_minutes += totalOT;
-                                }
-
-                                // --- PC (anggap: work_duration == '-' berarti PC) ---
-                                if (!row.in && !row.out) {
-                                    info.total_pc_count++;
-                                    info.total_pc_minutes += 0;
                                 }
 
                                 // ===========================
@@ -480,15 +473,14 @@
                             <th>Nama</th>
                             <th>Terlambat (kali)</th>
                             <th>Terlambat (waktu)</th>
-                            <th>Early Out (kali)</th>
-                            <th>Early Out (waktu)</th>
-                            <th>OT Awal (kali)</th>
-                            <th>OT Awal (waktu)</th>
                             <th>OT Akhir (kali)</th>
                             <th>OT Akhir (waktu)</th>
+                            <th>OT Awal (kali)</th>
+                            <th>OT Awal (waktu)</th>
                             <th>Total OT (kali)</th>
                             <th>Total OT (waktu)</th>
-                            <th>PC (kali)</th>
+                            <th>Early Out (kali)</th>
+                            <th>Early Out (waktu)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -500,22 +492,21 @@
                 html += `
             <tr>
                 <td>${name}</td>
+                
                 <td>${d.total_late_count}</td>
                 <td>${minutesToTime(d.total_late_minutes)}</td>
-
-                <td>${d.total_early_out_count}</td>
-                <td>${minutesToTime(d.total_early_out_minutes)}</td>
-
-                <td>${d.total_ot_start_count}</td>
-                <td>${minutesToTime(d.total_ot_start_minutes)}</td>
-
+                
                 <td>${d.total_ot_end_count}</td>
                 <td>${minutesToTime(d.total_ot_end_minutes)}</td>
-
+                
+                <td>${d.total_ot_start_count}</td>
+                <td>${minutesToTime(d.total_ot_start_minutes)}</td>
+                
                 <td>${d.total_ot_count}</td>
                 <td>${minutesToTime(d.total_ot_minutes)}</td>
-
-                <td>${d.total_pc_count}</td>
+                
+                <td>${d.total_early_out_count}</td>
+                <td>${minutesToTime(d.total_early_out_minutes)}</td>
             </tr>
         `;
             }
