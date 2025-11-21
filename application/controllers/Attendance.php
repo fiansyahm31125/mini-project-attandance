@@ -112,6 +112,7 @@ class Attendance extends CI_Controller
 
         // Overtime Start
         $overtimeStartMinutes = 0;
+        $total_overtime_start = 0;
         if ($actualInDT !== null && $actualInDT < $datetime_scheduledIn && $overtime_start != 0) {
             $total_overtime_start = ($datetime_scheduledIn->getTimestamp() - $actualInDT->getTimestamp()) / 60;
             $overtimeStartMinutes = ($total_overtime_start >= $overtime_start) ? (int)$total_overtime_start : 0;
@@ -119,6 +120,7 @@ class Attendance extends CI_Controller
 
         // Overtime End
         $overtimeEndMinutes = 0;
+        $total_overtime_end = 0;
         if ($actualOutDT !== null && $actualOutDT > $datetime_scheduledOut && $overtime_end != 0) {
             $total_overtime_end = ($actualOutDT->getTimestamp() - $datetime_scheduledOut->getTimestamp()) / 60;
             $overtimeEndMinutes = ($total_overtime_end >= $overtime_end) ? (int)$total_overtime_end : 0;
@@ -126,7 +128,9 @@ class Attendance extends CI_Controller
 
         return [
             'overtime_start_minutes' => $overtimeStartMinutes,
-            'overtime_end_minutes' => $overtimeEndMinutes
+            'overtime_end_minutes' => $overtimeEndMinutes,
+            'early_in_minutes' => $total_overtime_start,
+            'late_out_minutes' => $total_overtime_end,
         ];
     }
 
@@ -190,6 +194,9 @@ class Attendance extends CI_Controller
                 $item->overtime_start = $calcOT['overtime_start_minutes'];
                 $item->overtime_end   = $calcOT['overtime_end_minutes'];
 
+                $item->early_in = $calcOT['early_in_minutes'];
+                $item->late_out = $calcOT['late_out_minutes'];
+
                 $items[] = $item;
             }
 
@@ -210,7 +217,6 @@ class Attendance extends CI_Controller
         if ($emp_used_classes && count($emp_used_classes) > 0) {
 
             $items = [];
-            $raw = [];
 
             foreach ($emp_used_classes as $emp_used_class) {
 
@@ -277,15 +283,17 @@ class Attendance extends CI_Controller
                 $item->overtime_start = $calcOT['overtime_start_minutes'];
                 $item->overtime_end   = $calcOT['overtime_end_minutes'];
 
+                $item->early_in = $calcOT['early_in_minutes'];
+                $item->late_out = $calcOT['late_out_minutes'];
+
                 // simpan item
                 $items[] = $item;
-                $raw[] = $emp_used_classes;
             }
 
             return [
                 'status' => true,
                 'data'   => $items,
-                'raw' => $raw,
+                'raw' => $emp_used_classes,
                 'count'  => count($items)
             ];
         }
@@ -299,7 +307,6 @@ class Attendance extends CI_Controller
         if ($num_runs && count($num_runs) > 0) {
 
             $items = [];
-            $raw = [];
 
             foreach ($num_runs as $num_run) {
 
@@ -366,15 +373,17 @@ class Attendance extends CI_Controller
                 $item->overtime_start = $calcOT['overtime_start_minutes'];
                 $item->overtime_end   = $calcOT['overtime_end_minutes'];
 
+                $item->early_in = $calcOT['early_in_minutes'];
+                $item->late_out = $calcOT['late_out_minutes'];
+
                 // SIMPAN KE ARRAY
                 $items[] = $item;
-                $raw[] = $num_run;
             }
 
             return [
                 'status' => true,
                 'data'  => $items,
-                'raw' => $raw,
+                'raw' => $num_runs,
                 'count'  => count($items)
             ];
         }

@@ -120,6 +120,8 @@
                         <th>Early Out (min)</th>
                         <th>OT Start</th>
                         <th>OT End</th>
+                        <th>Early In</th>
+                        <th>Late Out</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -317,7 +319,9 @@
                                     minutesToTime(row.late),
                                     minutesToTime(row.early_out),
                                     minutesToTime(row.overtime_start),
-                                    minutesToTime(row.overtime_end)
+                                    minutesToTime(row.overtime_end),
+                                    minutesToTime(row.early_in),
+                                    minutesToTime(row.late_out)
                                 ];
                             });
 
