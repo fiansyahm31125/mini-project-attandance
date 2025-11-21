@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Tbcheckinout_mobile_model extends CI_Model
 {
     protected $table = 'tbcheckinout_mobile';
+    protected $table2 = 'tbcheckinout';
 
     /**
      * Ambil waktu CheckIn paling awal dan CheckOut paling akhir
@@ -36,7 +37,7 @@ class Tbcheckinout_mobile_model extends CI_Model
             return null;
         }
 
-        // Query: ambil checkout terakhir dalam rentang waktu
+        // --------- CHECKIN dari TABLE 1 ---------
         $this->db->select("MIN(checklog_date) AS first_checkin", false);
         $this->db->from($this->table);
         $this->db->where('employee_id', $employee_id);
@@ -46,12 +47,46 @@ class Tbcheckinout_mobile_model extends CI_Model
 
         $query = $this->db->get();
 
+        $a = null;
         if ($query->num_rows() > 0) {
-            return $query->row(); // hasil: object { last_checkout }
+            $a = $query->row(); // object { first_checkin }
         }
 
-        return null;
+        // --------- CHECKIN dari TABLE 2 ---------
+        $this->db->select("MIN(checkinout_datetime) AS first_checkin", false);
+        $this->db->from($this->table2);
+        $this->db->where('checkinout_employee_id', $employee_id);
+        $this->db->where('checkinout_datetime >=', $start);
+        $this->db->where('checkinout_datetime <=', $end);
+
+        $query = $this->db->get();
+
+        $b = null;
+        if ($query->num_rows() > 0) {
+            $b = $query->row(); // object { first_checkin }
+        }
+
+        // --------- Jika keduanya NULL -> return NULL ---------
+        if (!$a && !$b) {
+            return null;
+        }
+
+        // Ambil nilai datetime dari masing-masing object
+        $a_val = $a ? $a->first_checkin : null;
+        $b_val = $b ? $b->first_checkin : null;
+
+        // --------- Jika salah satu kosong -> return yang ada ---------
+        if ($a_val && !$b_val) return $a;
+        if (!$a_val && $b_val) return $b;
+
+        // --------- Jika dua-duanya ada, ambil yang paling awal ---------
+        if ($a_val <= $b_val) {
+            return $a;
+        } else {
+            return $b;
+        }
     }
+
 
     public function get_checkout($employee_id, $start, $end)
     {
@@ -70,10 +105,43 @@ class Tbcheckinout_mobile_model extends CI_Model
 
         $query = $this->db->get();
 
+        $a = null;
         if ($query->num_rows() > 0) {
-            return $query->row(); // hasil: object { last_checkout }
+            $a = $query->row(); // hasil: object { last_checkout }
         }
 
-        return null;
+        // --------- CHECKOUT dari TABLE 2 ---------
+        $this->db->select("MAX(checkinout_datetime) AS last_checkout");
+        $this->db->from($this->table2);
+        $this->db->where('checkinout_employee_id', $employee_id);
+        $this->db->where('checkinout_datetime >=', $start);
+        $this->db->where('checkinout_datetime <=', $end);
+
+        $query = $this->db->get();
+
+        $b = null;
+        if ($query->num_rows() > 0) {
+            $b = $query->row(); // hasil: object { last_checkout }
+        }
+
+        // --------- Jika keduanya NULL -> return NULL ---------
+        if (!$a && !$b) {
+            return null;
+        }
+
+        // Ambil nilai datetime dari masing-masing object
+        $a_val = $a ? $a->last_checkout : null;
+        $b_val = $b ? $b->last_checkout : null;
+
+        // --------- Jika salah satu kosong -> return yang ada ---------
+        if ($a_val && !$b_val) return $a;
+        if (!$a_val && $b_val) return $b;
+
+        // --------- Jika dua-duanya ada, ambil yang paling akhir ---------
+        if ($a_val >= $b_val) {
+            return $a;
+        } else {
+            return $b;
+        }
     }
 }
