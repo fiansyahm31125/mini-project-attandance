@@ -134,6 +134,100 @@ class Attendance extends CI_Controller
         ];
     }
 
+
+
+    public function calculateAll(
+        $date,
+        $scheduledIn,
+        $actualIn,
+        $scheduledOut,
+        $actualOut,
+        $toleranceLate = 0,
+        $toleranceEarly = 0,
+        $overtime_start = 0,
+        $overtime_end = 0
+    ) {
+        // 1. Waktu kerja utama → meng-handle lintas hari
+        $range = $this->makeDateTime($date, $scheduledIn, $scheduledOut);
+        $scheduledInDT  = new DateTime($range['start']);
+        $scheduledOutDT = new DateTime($range['end']);
+
+        // 2. Actual IN / OUT
+        $actualInDT  = !empty($actualIn) ? new DateTime($actualIn) : null;
+        $actualOutDT = !empty($actualOut) ? new DateTime($actualOut) : null;
+
+        // ----------------------------------------
+        // 3. Work Duration
+        // ----------------------------------------
+        $workDuration = "00:00:00";
+        if ($actualInDT && $actualOutDT) {
+            $workDuration = $actualInDT->diff($actualOutDT)->format('%H:%I:%S');
+        }
+
+        // ----------------------------------------
+        // 4. Late
+        // ----------------------------------------
+        $lateMinutes = 0;
+        if ($actualInDT && $actualInDT > $scheduledInDT) {
+            $late = ($actualInDT->getTimestamp() - $scheduledInDT->getTimestamp()) / 60;
+            $lateMinutes = ($late >= $toleranceLate) ? (int)$late : 0;
+        }
+
+        // ----------------------------------------
+        // 5. Early Out
+        // ----------------------------------------
+        $earlyOutMinutes = 0;
+        if ($actualOutDT && $actualOutDT < $scheduledOutDT) {
+            $early = ($scheduledOutDT->getTimestamp() - $actualOutDT->getTimestamp()) / 60;
+            $earlyOutMinutes = ($early >= $toleranceEarly) ? (int)$early : 0;
+        }
+
+        // ----------------------------------------
+        // 6. Overtime Start (Early In)
+        // ----------------------------------------
+        $overtimeStartMinutes = 0;
+        $total_overtime_start = 0;
+
+        if ($actualInDT && $actualInDT < $scheduledInDT && $overtime_start != 0) {
+            $total_overtime_start =
+                ($scheduledInDT->getTimestamp() - $actualInDT->getTimestamp()) / 60;
+
+            $overtimeStartMinutes =
+                ($total_overtime_start >= $overtime_start) ? (int)$total_overtime_start : 0;
+        }
+
+        // ----------------------------------------
+        // 7. Overtime End (Late Out)
+        // ----------------------------------------
+        $overtimeEndMinutes = 0;
+        $total_overtime_end = 0;
+
+        if ($actualOutDT && $actualOutDT > $scheduledOutDT && $overtime_end != 0) {
+            $total_overtime_end =
+                ($actualOutDT->getTimestamp() - $scheduledOutDT->getTimestamp()) / 60;
+
+            $overtimeEndMinutes =
+                ($total_overtime_end >= $overtime_end) ? (int)$total_overtime_end : 0;
+        }
+
+        // ----------------------------------------
+        // 8. Return Full Result
+        // ----------------------------------------
+        return [
+            "work_duration"         => $workDuration,
+
+            "late_minutes"          => $lateMinutes,
+            "early_out_minutes"     => $earlyOutMinutes,
+
+            "overtime_start_minutes" => $overtimeStartMinutes,
+            "overtime_end_minutes"  => $overtimeEndMinutes,
+
+            "early_in_minutes"      => $total_overtime_start,
+            "late_out_minutes"      => $total_overtime_end,
+        ];
+    }
+
+
     public function get_by_appid_and_empid_api($appid, $empid, $date = null)
     {
         $emp_data = $this->Tbemployee_model->get_employee($appid, $empid);
@@ -166,36 +260,25 @@ class Attendance extends CI_Controller
                 $item->work_hour      = $emp_sch_temp['start_time'] . '-' . $emp_sch_temp['end_time'];
                 $item->in             = $dateTimeCheckin->first_checkin;
                 $item->out            = $dateTimeCheckout->last_checkout;
-                $item->work_duration  = ($item->in && $item->out) ? $this->intervalWork($item->in, $item->out) : 0;
-
-                $calcLateEarly = $this->calculateLateEarlyOut(
+                $calc = $this->calculateAll(
                     $date,
                     $emp_sch_temp['start_time'],
                     $item->in,
                     $emp_sch_temp['end_time'],
                     $item->out,
                     $emp_sch_temp['late_minutes'],
-                    $emp_sch_temp['early_minutes']
-                );
-
-                $item->late      = $calcLateEarly['late_minutes'];
-                $item->early_out = $calcLateEarly['early_out_minutes'];
-
-                $calcOT = $this->calculateOvertime(
-                    $date,
-                    $emp_sch_temp['start_time'],
-                    $item->in,
-                    $emp_sch_temp['end_time'],
-                    $item->out,
+                    $emp_sch_temp['early_minutes'],
                     $emp_sch_temp['overtime_start'],
                     $emp_sch_temp['overtime_end']
                 );
 
-                $item->overtime_start = $calcOT['overtime_start_minutes'];
-                $item->overtime_end   = $calcOT['overtime_end_minutes'];
-
-                $item->early_in = $calcOT['early_in_minutes'];
-                $item->late_out = $calcOT['late_out_minutes'];
+                $item->work_duration      = $calc['work_duration'];
+                $item->late               = $calc['late_minutes'];
+                $item->early_out          = $calc['early_out_minutes'];
+                $item->overtime_start     = $calc['overtime_start_minutes'];
+                $item->overtime_end       = $calc['overtime_end_minutes'];
+                $item->early_in           = $calc['early_in_minutes'];
+                $item->late_out           = $calc['late_out_minutes'];
 
                 $items[] = $item;
             }
@@ -251,40 +334,25 @@ class Attendance extends CI_Controller
                 $item->work_hour      = $emp_used_class['start_time'] . '-' . $emp_used_class['end_time'];
                 $item->in             = $dateTimeCheckin->first_checkin ?? null;
                 $item->out            = $dateTimeCheckout->last_checkout ?? null;
-                $item->work_duration  = ($item->in && $item->out)
-                    ? $this->intervalWork($item->in, $item->out)
-                    : 0;
-
-                // Hitung late/early
-                $calcLateEarly = $this->calculateLateEarlyOut(
+                $calc = $this->calculateAll(
                     $date,
-                    $emp_used_class['start_time'],
+                    $emp_used_classes['start_time'],
                     $item->in,
-                    $emp_used_class['end_time'],
+                    $emp_used_classes['end_time'],
                     $item->out,
-                    $emp_used_class['late_minutes'],
-                    $emp_used_class['early_minutes']
+                    $emp_used_classes['late_minutes'],
+                    $emp_used_classes['early_minutes'],
+                    $emp_used_classes['overtime_start'],
+                    $emp_used_classes['overtime_end']
                 );
 
-                $item->late         = $calcLateEarly['late_minutes'];
-                $item->early_out    = $calcLateEarly['early_out_minutes'];
-
-                // Hitung OT
-                $calcOT = $this->calculateOvertime(
-                    $date,
-                    $emp_used_class['start_time'],
-                    $item->in,
-                    $emp_used_class['end_time'],
-                    $item->out,
-                    $emp_used_class['overtime_start'],
-                    $emp_used_class['overtime_end']
-                );
-
-                $item->overtime_start = $calcOT['overtime_start_minutes'];
-                $item->overtime_end   = $calcOT['overtime_end_minutes'];
-
-                $item->early_in = $calcOT['early_in_minutes'];
-                $item->late_out = $calcOT['late_out_minutes'];
+                $item->work_duration      = $calc['work_duration'];
+                $item->late               = $calc['late_minutes'];
+                $item->early_out          = $calc['early_out_minutes'];
+                $item->overtime_start     = $calc['overtime_start_minutes'];
+                $item->overtime_end       = $calc['overtime_end_minutes'];
+                $item->early_in           = $calc['early_in_minutes'];
+                $item->late_out           = $calc['late_out_minutes'];
 
                 // simpan item
                 $items[] = $item;
@@ -341,40 +409,25 @@ class Attendance extends CI_Controller
                 $item->work_hour      = $num_run['start_time'] . '-' . $num_run['end_time'];
                 $item->in             = $dateTimeCheckin->first_checkin ?? null;
                 $item->out            = $dateTimeCheckout->last_checkout ?? null;
-                $item->work_duration  = ($item->in && $item->out)
-                    ? $this->intervalWork($item->in, $item->out)
-                    : 0;
-
-                // Hitung late / early-out
-                $calcLateEarly = $this->calculateLateEarlyOut(
+                $calc = $this->calculateAll(
                     $date,
-                    $num_run['start_time'],
+                    $num_runs['start_time'],
                     $item->in,
-                    $num_run['end_time'],
+                    $num_runs['end_time'],
                     $item->out,
-                    $num_run['late_minutes'],
-                    $num_run['early_minutes']
+                    $num_runs['late_minutes'],
+                    $num_runs['early_minutes'],
+                    $num_runs['overtime_start'],
+                    $num_runs['overtime_end']
                 );
 
-                $item->late         = $calcLateEarly['late_minutes'];
-                $item->early_out    = $calcLateEarly['early_out_minutes'];
-
-                // Hitung overtime
-                $calcOT = $this->calculateOvertime(
-                    $date,
-                    $num_run['start_time'],
-                    $item->in,
-                    $num_run['end_time'],
-                    $item->out,
-                    $num_run['overtime_start'],
-                    $num_run['overtime_end']
-                );
-
-                $item->overtime_start = $calcOT['overtime_start_minutes'];
-                $item->overtime_end   = $calcOT['overtime_end_minutes'];
-
-                $item->early_in = $calcOT['early_in_minutes'];
-                $item->late_out = $calcOT['late_out_minutes'];
+                $item->work_duration      = $calc['work_duration'];
+                $item->late               = $calc['late_minutes'];
+                $item->early_out          = $calc['early_out_minutes'];
+                $item->overtime_start     = $calc['overtime_start_minutes'];
+                $item->overtime_end       = $calc['overtime_end_minutes'];
+                $item->early_in           = $calc['early_in_minutes'];
+                $item->late_out           = $calc['late_out_minutes'];
 
                 // SIMPAN KE ARRAY
                 $items[] = $item;
