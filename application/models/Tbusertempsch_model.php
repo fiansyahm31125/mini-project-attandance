@@ -42,7 +42,9 @@ class Tbusertempsch_model extends CI_Model
                        s.start_time, s.end_time,
                        s.start_checkin_time,s.end_checkin_time,s.start_checkout_time,s.end_checkout_time,
                        s.late_minutes,s.early_minutes,
-                       s.overtime_start,s.overtime_end');
+                       s.overtime_start,s.overtime_end,
+                       s.break_type,s.break_in,s.break_out,s.break_duration
+                       ');
         $this->db->from('tbusertempsch t');
         $this->db->join('tbschclass s', 's.id = t.schclass_id', 'left');
         $this->db->where('t.appid', $appid);

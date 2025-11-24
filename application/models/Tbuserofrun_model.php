@@ -72,7 +72,8 @@ class Tbuserofrun_model extends CI_Model
         s.late_minutes,
         s.early_minutes,
         s.overtime_start,
-        s.overtime_end
+        s.overtime_end,
+        s.break_type,s.break_in,s.break_out,s.break_duration
     ');
         $this->db->from('tbuserofrun u');
         $this->db->join('tbnumrun r', 'r.id = u.num_of_run_id', 'left');

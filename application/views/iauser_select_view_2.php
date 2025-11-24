@@ -117,6 +117,8 @@
                         <th>Out</th>
                         <th>Work Duration</th>
                         <th>Effective Work</th>
+                        <th>Break Type</th>
+                        <th>Break Time</th>
                         <th>Late (min)</th>
                         <th>Early Out (min)</th>
                         <th>OT Start</th>
@@ -318,6 +320,8 @@
                                     formatTime(row.out),
                                     isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.work_duration,
                                     isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.effective_work,
+                                    isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.break_type,
+                                    isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.break_time,
                                     minutesToTime(row.late),
                                     minutesToTime(row.early_out),
                                     minutesToTime(row.overtime_start),

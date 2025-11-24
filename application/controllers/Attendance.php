@@ -152,6 +152,35 @@ class Attendance extends CI_Controller
         ];
     }
 
+    public function calculateBreak($type, $break_in, $break_out, $break_duration)
+    {
+        $break_type = null;
+        $break_time = null;
+
+        // define break type
+        if ($type == 0) {
+            $break_type = 'Without Break';
+        } else if ($type == 1) {
+            $break_type = 'Duration';
+        } else if ($type == 2) {
+            $break_type = 'Time Span';
+        }
+
+        // define break time
+        if ($type == 0) {
+            $break_time = '';
+        } else if ($type == 1) {
+            $break_time = $break_duration . "m";
+        } else if ($type == 2) {
+            $break_time = $break_in . '-' . $break_out;
+        }
+
+        return [
+            'break_type' => $break_type,
+            'break_time' => $break_time
+        ];
+    }
+
     public function get_by_appid_and_empid_api($appid, $empid, $date = null)
     {
         $emp_data = $this->Tbemployee_model->get_employee($appid, $empid);
@@ -179,13 +208,15 @@ class Attendance extends CI_Controller
                 $item = new stdClass();
                 $item->employee_name  = $emp_data['employee_full_name'];
                 $item->department     = $emp_data['name'];
-                $item->schedule_type  = 'Temporary(' . $emp_sch_temp['name'] . ')';
+                $item->schedule_type  = 'Schedule Temporary (' . $emp_sch_temp['name'] . ')';
                 $item->date           = $date;
                 $item->work_hour      = $emp_sch_temp['start_time'] . '-' . $emp_sch_temp['end_time'];
                 $item->in             = $dateTimeCheckin->first_checkin;
                 $item->out            = $dateTimeCheckout->last_checkout;
-                $item->work_duration  = ($item->in && $item->out) ? $this->intervalWork($date, $item->in, $item->out, $emp_sch_temp['start_time'], $emp_sch_temp['end_time'])['work_duration'] : 0;
-                $item->effective_work  = ($item->in && $item->out) ? $this->intervalWork($date, $item->in, $item->out, $emp_sch_temp['start_time'], $emp_sch_temp['end_time'])['effective_work'] : 0;
+
+                $interval_work = $this->intervalWork($date, $item->in, $item->out, $emp_sch_temp['start_time'], $emp_sch_temp['end_time']);
+                $item->work_duration  = ($item->in && $item->out) ? $interval_work['work_duration'] : 0;
+                $item->effective_work  = ($item->in && $item->out) ? $interval_work['effective_work'] : 0;
 
                 $calcLateEarly = $this->calculateLateEarlyOut(
                     $date,
@@ -215,6 +246,10 @@ class Attendance extends CI_Controller
 
                 $item->early_in = $calcOT['early_in_minutes'];
                 $item->late_out = $calcOT['late_out_minutes'];
+
+                $break = $this->calculateBreak($emp_sch_temp["break_type"], $emp_sch_temp['break_in'], $emp_sch_temp['break_out'], $emp_sch_temp['break_duration']);
+                $item->break_type = $break['break_type'];
+                $item->break_time = $break['break_time'];
 
                 $items[] = $item;
             }
@@ -265,16 +300,18 @@ class Attendance extends CI_Controller
                 $item = new stdClass();
                 $item->employee_name  = $emp_data['employee_full_name'];
                 $item->department     = $emp_data['name'];
-                $item->schedule_type  = 'Automatic(' . $emp_used_class['name'] . ')';
+                $item->schedule_type  = 'Automatic (' . $emp_used_class['name'] . ')';
                 $item->date           = $date;
                 $item->work_hour      = $emp_used_class['start_time'] . '-' . $emp_used_class['end_time'];
                 $item->in             = $dateTimeCheckin->first_checkin ?? null;
                 $item->out            = $dateTimeCheckout->last_checkout ?? null;
+
+                $interval_work = $this->intervalWork($date, $item->in, $item->out, $emp_used_class['start_time'], $emp_used_class['end_time']);
                 $item->work_duration  = ($item->in && $item->out)
-                    ? $this->intervalWork($date, $item->in, $item->out, $emp_used_class['start_time'], $emp_used_class['end_time'])['work_duration']
+                    ? $interval_work['work_duration']
                     : 0;
                 $item->effective_work  = ($item->in && $item->out)
-                    ? $this->intervalWork($date, $item->in, $item->out, $emp_used_class['start_time'], $emp_used_class['end_time'])['effective_work']
+                    ? $interval_work['effective_work']
                     : 0;
 
                 // Hitung late/early
@@ -307,6 +344,10 @@ class Attendance extends CI_Controller
 
                 $item->early_in = $calcOT['early_in_minutes'];
                 $item->late_out = $calcOT['late_out_minutes'];
+
+                $break = $this->calculateBreak($emp_used_class["break_type"], $emp_used_class['break_in'], $emp_used_class['break_out'], $emp_used_class['break_duration']);
+                $item->break_type = $break['break_type'];
+                $item->break_time = $break['break_time'];
 
                 // simpan item
                 $items[] = $item;
@@ -358,16 +399,17 @@ class Attendance extends CI_Controller
                 $item = new stdClass();
                 $item->employee_name  = $emp_data['employee_full_name'];
                 $item->department     = $emp_data['name'];
-                $item->schedule_type  = 'Schedule(' . $num_run['run_name'] . ')';
+                $item->schedule_type  = 'Schedule (' . $num_run['run_name'] . ')';
                 $item->date           = $date;
                 $item->work_hour      = $num_run['start_time'] . '-' . $num_run['end_time'];
                 $item->in             = $dateTimeCheckin->first_checkin ?? null;
                 $item->out            = $dateTimeCheckout->last_checkout ?? null;
+                $interval_work = $this->intervalWork($date, $item->in, $item->out, $num_run['start_time'], $num_run['end_time']);
                 $item->work_duration  = ($item->in && $item->out)
-                    ? $this->intervalWork($date, $item->in, $item->out, $num_run['start_time'], $num_run['end_time'])['work_duration']
+                    ? $interval_work['work_duration']
                     : 0;
                 $item->effective_work  = ($item->in && $item->out)
-                    ? $this->intervalWork($date, $item->in, $item->out, $num_run['start_time'], $num_run['end_time'])['effective_work']
+                    ? $interval_work['effective_work']
                     : 0;
 
                 // Hitung late / early-out
@@ -400,6 +442,10 @@ class Attendance extends CI_Controller
 
                 $item->early_in = $calcOT['early_in_minutes'];
                 $item->late_out = $calcOT['late_out_minutes'];
+
+                $break = $this->calculateBreak($num_run["break_type"], $num_run['break_in'], $num_run['break_out'], $num_run['break_duration']);
+                $item->break_type = $break['break_type'];
+                $item->break_time = $break['break_time'];
 
                 // SIMPAN KE ARRAY
                 $items[] = $item;

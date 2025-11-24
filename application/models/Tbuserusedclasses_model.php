@@ -32,7 +32,8 @@ class Tbuserusedclasses_model extends CI_Model
         s.late_minutes,
         s.early_minutes,
         s.overtime_start,
-        s.overtime_end
+        s.overtime_end,
+        s.break_type,s.break_in,s.break_out,s.break_duration
     ');
         $this->db->from('tbuserusedclasses u');
         $this->db->join('tbschclass s', 's.id = u.schclass_id', 'left');
