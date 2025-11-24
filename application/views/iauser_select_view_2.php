@@ -115,7 +115,8 @@
                         <th>Work Hour</th>
                         <th>In</th>
                         <th>Out</th>
-                        <th>Duration</th>
+                        <th>Work Duration</th>
+                        <th>Effective Work</th>
                         <th>Late (min)</th>
                         <th>Early Out (min)</th>
                         <th>OT Start</th>
@@ -316,6 +317,7 @@
                                     formatTime(row.in),
                                     formatTime(row.out),
                                     isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.work_duration,
+                                    isAbsent ? '<span class="text-dark fw-bold">-</span>' : row.effective_work,
                                     minutesToTime(row.late),
                                     minutesToTime(row.early_out),
                                     minutesToTime(row.overtime_start),
