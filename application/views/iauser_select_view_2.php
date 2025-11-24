@@ -104,31 +104,33 @@
 
         <!-- Table -->
         <div class="table-container">
-            <table id="attendanceTable" class="table table-striped table-hover table-bordered" style="width:100%">
-                <thead class="table-dark">
-                    <tr>
-                        <th>No</th>
-                        <th>Employee Name</th>
-                        <th>Department</th>
-                        <th>Schedule Type</th>
-                        <th>Date</th>
-                        <th>Work Hour</th>
-                        <th>In</th>
-                        <th>Out</th>
-                        <th>Work Duration</th>
-                        <th>Effective Work</th>
-                        <th>Break Type</th>
-                        <th>Break Time</th>
-                        <th>Late (min)</th>
-                        <th>Early Out (min)</th>
-                        <th>OT Start</th>
-                        <th>OT End</th>
-                        <th>Early In</th>
-                        <th>Late Out</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <div class="table-responsive">
+                <table id="attendanceTable" class="table table-striped table-hover table-bordered" style="width:100%">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>No</th>
+                            <th>Employee Name</th>
+                            <th>Department</th>
+                            <th>Schedule Type</th>
+                            <th>Date</th>
+                            <th>Work Hour</th>
+                            <th>In</th>
+                            <th>Out</th>
+                            <th>Work Duration</th>
+                            <th>Effective Work</th>
+                            <th>Break Type</th>
+                            <th>Break Time</th>
+                            <th>Late (min)</th>
+                            <th>Early Out (min)</th>
+                            <th>OT Start</th>
+                            <th>OT End</th>
+                            <th>Early In</th>
+                            <th>Late Out</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         <div id="summaryTableContainer" class="mt-4"></div>

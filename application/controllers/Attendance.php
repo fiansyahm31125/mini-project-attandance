@@ -159,11 +159,11 @@ class Attendance extends CI_Controller
 
         // define break type
         if ($type == 0) {
-            $break_type = 'Without Break';
+            $break_type = 'with out Break';
         } else if ($type == 1) {
-            $break_type = 'Duration';
+            $break_type = 'duration';
         } else if ($type == 2) {
-            $break_type = 'Time Span';
+            $break_type = 'time Span';
         }
 
         // define break time
